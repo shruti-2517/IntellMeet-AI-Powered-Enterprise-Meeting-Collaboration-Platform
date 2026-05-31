@@ -14,6 +14,7 @@ AI-powered meeting collaboration platform with real-time video conferencing, tra
 └── backend/          # Node.js + Express API server
     ├── src/         # Source files
     ├── package.json
+    ├── server.js
     └── tsconfig.json
 ```
 
