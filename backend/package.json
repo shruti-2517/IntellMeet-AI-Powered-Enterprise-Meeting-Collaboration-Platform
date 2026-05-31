@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "description": "AI Meeting Intelligence Platform - Backend",
   "type": "module",
-  "main": "dist/index.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "node src/index.js",
+    "start": "node server.js",
+    "dev": "node server.js",
     "lint": "eslint src --ext js",
     "test": "jest"
   },
