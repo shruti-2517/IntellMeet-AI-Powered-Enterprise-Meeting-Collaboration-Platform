@@ -1,0 +1,216 @@
+export const MEETINGS = [
+  {
+    id: 'm1',
+    title: 'Sprint Review - Q2 2026',
+    host: 'Alex Johnson',
+    hostAvatar: 'AJ',
+    participants: 12,
+    scheduledAt: '2026-04-15T10:00:00',
+    duration: '1h 24m',
+    status: 'live' as const,
+    hasRecording: false,
+    hasSummary: false,
+    tags: ['Engineering', 'Sprint'],
+    description: 'Review of sprint deliverables and team velocity',
+  },
+  {
+    id: 'm2',
+    title: 'Product Roadmap Planning',
+    host: 'Sarah Chen',
+    hostAvatar: 'SC',
+    participants: 8,
+    scheduledAt: '2026-04-15T14:00:00',
+    duration: '2h 00m',
+    status: 'scheduled' as const,
+    hasRecording: false,
+    hasSummary: false,
+    tags: ['Product', 'Strategy'],
+    description: 'Q3 roadmap alignment across product and engineering',
+  },
+  {
+    id: 'm3',
+    title: 'Daily Standup',
+    host: 'Mike Torres',
+    hostAvatar: 'MT',
+    participants: 6,
+    scheduledAt: '2026-04-14T09:00:00',
+    duration: '15m',
+    status: 'completed' as const,
+    hasRecording: true,
+    hasSummary: true,
+    tags: ['Engineering', 'Daily'],
+    description: 'Team sync and blocker identification',
+  },
+  {
+    id: 'm4',
+    title: 'Design System Workshop',
+    host: 'Priya Sharma',
+    hostAvatar: 'PS',
+    participants: 15,
+    scheduledAt: '2026-04-14T13:00:00',
+    duration: '2h 10m',
+    status: 'completed' as const,
+    hasRecording: true,
+    hasSummary: true,
+    tags: ['Design', 'Workshop'],
+    description: 'Component library and design tokens review',
+  },
+  {
+    id: 'm5',
+    title: 'Q4 Strategic Planning',
+    host: 'David Kim',
+    hostAvatar: 'DK',
+    participants: 25,
+    scheduledAt: '2026-04-16T11:00:00',
+    duration: '3h 00m',
+    status: 'scheduled' as const,
+    hasRecording: false,
+    hasSummary: false,
+    tags: ['Leadership', 'Strategy'],
+    description: 'Annual planning and OKR setting for Q4',
+  },
+  {
+    id: 'm6',
+    title: 'Customer Success Review',
+    host: 'Emma Wilson',
+    hostAvatar: 'EW',
+    participants: 9,
+    scheduledAt: '2026-04-13T15:30:00',
+    duration: '45m',
+    status: 'completed' as const,
+    hasRecording: true,
+    hasSummary: true,
+    tags: ['Success', 'Clients'],
+    description: 'Monthly client health and satisfaction review',
+  },
+];
+
+export const TEAM_MEMBERS = [
+  { id: 't1', name: 'Alex Johnson', avatar: 'AJ', role: 'Admin', team: 'Engineering', status: 'online', meetings: 48, tasks: 12 },
+  { id: 't2', name: 'Sarah Chen', avatar: 'SC', role: 'Member', team: 'Product', status: 'busy', meetings: 36, tasks: 8 },
+  { id: 't3', name: 'Mike Torres', avatar: 'MT', role: 'Member', team: 'Engineering', status: 'online', meetings: 52, tasks: 15 },
+  { id: 't4', name: 'Priya Sharma', avatar: 'PS', role: 'Member', team: 'Design', status: 'away', meetings: 29, tasks: 7 },
+  { id: 't5', name: 'David Kim', avatar: 'DK', role: 'Admin', team: 'Leadership', status: 'online', meetings: 61, tasks: 4 },
+  { id: 't6', name: 'Emma Wilson', avatar: 'EW', role: 'Member', team: 'Success', status: 'offline', meetings: 33, tasks: 11 },
+  { id: 't7', name: 'James Park', avatar: 'JP', role: 'Member', team: 'Engineering', status: 'online', meetings: 40, tasks: 9 },
+  { id: 't8', name: 'Luna Martinez', avatar: 'LM', role: 'Guest', team: 'Design', status: 'online', meetings: 18, tasks: 3 },
+];
+
+export const ACTION_ITEMS = [
+  { id: 'a1', title: 'Review and merge PR #142 for video recording feature', assignee: 'Mike Torres', avatar: 'MT', dueDate: '2026-04-17', priority: 'high', status: 'todo', meeting: 'Sprint Review - Q2 2026', completed: false },
+  { id: 'a2', title: 'Update design tokens for dark mode support', assignee: 'Priya Sharma', avatar: 'PS', dueDate: '2026-04-18', priority: 'medium', status: 'in-progress', meeting: 'Design System Workshop', completed: false },
+  { id: 'a3', title: 'Write API documentation for meeting endpoints', assignee: 'Alex Johnson', avatar: 'AJ', dueDate: '2026-04-16', priority: 'high', status: 'in-progress', meeting: 'Sprint Review - Q2 2026', completed: false },
+  { id: 'a4', title: 'Prepare Q3 roadmap slide deck', assignee: 'Sarah Chen', avatar: 'SC', dueDate: '2026-04-19', priority: 'medium', status: 'todo', meeting: 'Product Roadmap Planning', completed: false },
+  { id: 'a5', title: 'Set up Redis caching for session management', assignee: 'James Park', avatar: 'JP', dueDate: '2026-04-20', priority: 'low', status: 'todo', meeting: 'Sprint Review - Q2 2026', completed: false },
+  { id: 'a6', title: 'Create onboarding materials for new enterprise client', assignee: 'Emma Wilson', avatar: 'EW', dueDate: '2026-04-15', priority: 'high', status: 'done', meeting: 'Customer Success Review', completed: true },
+  { id: 'a7', title: 'Implement JWT refresh token rotation', assignee: 'Mike Torres', avatar: 'MT', dueDate: '2026-04-14', priority: 'high', status: 'done', meeting: 'Sprint Review - Q2 2026', completed: true },
+  { id: 'a8', title: 'Define OKRs for Q4 initiative', assignee: 'David Kim', avatar: 'DK', dueDate: '2026-04-22', priority: 'medium', status: 'todo', meeting: 'Q4 Strategic Planning', completed: false },
+];
+
+export const CHAT_MESSAGES = [
+  { id: 'c1', sender: 'Sarah Chen', avatar: 'SC', message: 'Hey team! Ready for the sprint review?', time: '09:45 AM', isMe: false, type: 'text' },
+  { id: 'c2', sender: 'Alex Johnson', avatar: 'AJ', message: 'Yes! I just finished the demo slides. Should be a great session.', time: '09:46 AM', isMe: true, type: 'text' },
+  { id: 'c3', sender: 'Mike Torres', avatar: 'MT', message: 'The recording feature is working perfectly now 🎉', time: '09:47 AM', isMe: false, type: 'text' },
+  { id: 'c4', sender: 'Priya Sharma', avatar: 'PS', message: 'Can someone share the design assets before we start?', time: '09:48 AM', isMe: false, type: 'text' },
+  { id: 'c5', sender: 'Alex Johnson', avatar: 'AJ', message: 'Uploading them now!', time: '09:49 AM', isMe: true, type: 'text' },
+  { id: 'c6', sender: 'David Kim', avatar: 'DK', message: 'Looking forward to seeing the AI summary feature in action 🤖', time: '09:50 AM', isMe: false, type: 'text' },
+  { id: 'c7', sender: 'Emma Wilson', avatar: 'EW', message: 'This platform has already saved us so much time on follow-ups!', time: '09:51 AM', isMe: false, type: 'text' },
+  { id: 'c8', sender: 'Alex Johnson', avatar: 'AJ', message: 'That\'s exactly what we built it for 🚀', time: '09:52 AM', isMe: true, type: 'text' },
+];
+
+export const ANALYTICS_DATA = {
+  weeklyMeetings: [
+    { day: 'Mon', meetings: 12, participants: 89, hours: 18 },
+    { day: 'Tue', meetings: 8, participants: 54, hours: 12 },
+    { day: 'Wed', meetings: 15, participants: 112, hours: 22 },
+    { day: 'Thu', meetings: 10, participants: 76, hours: 15 },
+    { day: 'Fri', meetings: 6, participants: 41, hours: 9 },
+    { day: 'Sat', meetings: 2, participants: 14, hours: 3 },
+    { day: 'Sun', meetings: 1, participants: 8, hours: 1.5 },
+  ],
+  monthlyTrend: [
+    { month: 'Jan', meetings: 142, aiSummaries: 98, actionItems: 312 },
+    { month: 'Feb', meetings: 168, aiSummaries: 134, actionItems: 387 },
+    { month: 'Mar', meetings: 195, aiSummaries: 162, actionItems: 445 },
+    { month: 'Apr', meetings: 221, aiSummaries: 198, actionItems: 521 },
+  ],
+  productivity: [
+    { name: 'Follow-up Time Saved', value: 52, color: '#6366f1' },
+    { name: 'Task Completion Rate', value: 78, color: '#10b981' },
+    { name: 'Meeting Efficiency', value: 85, color: '#06b6d4' },
+    { name: 'Team Engagement', value: 91, color: '#8b5cf6' },
+  ],
+  teamActivity: [
+    { name: 'Engineering', meetings: 45, color: '#6366f1' },
+    { name: 'Product', meetings: 28, color: '#8b5cf6' },
+    { name: 'Design', meetings: 19, color: '#06b6d4' },
+    { name: 'Leadership', meetings: 15, color: '#10b981' },
+    { name: 'Success', meetings: 12, color: '#f59e0b' },
+  ],
+};
+
+export const AI_SUMMARY = {
+  meetingTitle: 'Sprint Review - Q2 2026',
+  date: 'April 15, 2026',
+  duration: '1h 24m',
+  participants: ['Alex Johnson', 'Sarah Chen', 'Mike Torres', 'Priya Sharma', 'David Kim'],
+  summary: `The team successfully completed 18 of 22 planned story points in this sprint. Key highlights include the successful deployment of the real-time video recording feature, completion of the AI transcription integration with 89% accuracy rate, and the design system upgrade to support dark mode across all components.
+
+The team encountered minor delays in the Redis caching implementation due to configuration complexity, which has been moved to the next sprint. Overall sprint velocity improved by 15% compared to last sprint, demonstrating strong team momentum heading into Q3.`,
+  keyPoints: [
+    'Completed 18/22 story points (82% completion rate)',
+    'Video recording feature deployed to production',
+    'AI transcription achieving 89% accuracy',
+    'Design system dark mode support completed',
+    'Redis caching moved to next sprint',
+    'Sprint velocity improved 15% vs previous sprint',
+  ],
+  actionItems: [
+    { task: 'Review and merge PR #142 for video recording', assignee: 'Mike Torres', due: 'Apr 17' },
+    { task: 'Update design tokens for dark mode', assignee: 'Priya Sharma', due: 'Apr 18' },
+    { task: 'Write API documentation for meeting endpoints', assignee: 'Alex Johnson', due: 'Apr 16' },
+    { task: 'Set up Redis caching configuration', assignee: 'James Park', due: 'Apr 20' },
+  ],
+  sentiment: 'Positive',
+  engagementScore: 87,
+  followUpReduction: '54%',
+};
+
+export const KANBAN_COLUMNS = {
+  todo: {
+    title: 'To Do',
+    color: '#6366f1',
+    items: [
+      { id: 'k1', title: 'Implement WebRTC peer discovery', priority: 'high', assignee: 'MT', tags: ['Backend', 'Video'] },
+      { id: 'k2', title: 'Design analytics dashboard wireframes', priority: 'medium', assignee: 'PS', tags: ['Design'] },
+      { id: 'k3', title: 'Set up Kubernetes cluster config', priority: 'high', assignee: 'JP', tags: ['DevOps'] },
+      { id: 'k4', title: 'Define Q4 OKRs framework', priority: 'medium', assignee: 'DK', tags: ['Strategy'] },
+    ],
+  },
+  inProgress: {
+    title: 'In Progress',
+    color: '#f59e0b',
+    items: [
+      { id: 'k5', title: 'AI transcription model fine-tuning', priority: 'high', assignee: 'AJ', tags: ['AI', 'Backend'] },
+      { id: 'k6', title: 'Dark mode design token system', priority: 'medium', assignee: 'PS', tags: ['Design', 'Frontend'] },
+      { id: 'k7', title: 'API documentation for v2 endpoints', priority: 'low', assignee: 'AJ', tags: ['Docs'] },
+    ],
+  },
+  review: {
+    title: 'In Review',
+    color: '#06b6d4',
+    items: [
+      { id: 'k8', title: 'Video recording feature PR #142', priority: 'high', assignee: 'MT', tags: ['Backend', 'Video'] },
+      { id: 'k9', title: 'JWT refresh token security audit', priority: 'high', assignee: 'MT', tags: ['Security'] },
+    ],
+  },
+  done: {
+    title: 'Done',
+    color: '#10b981',
+    items: [
+      { id: 'k10', title: 'Socket.io real-time chat integration', priority: 'high', assignee: 'AJ', tags: ['Backend', 'Chat'] },
+      { id: 'k11', title: 'Onboarding flow UI redesign', priority: 'medium', assignee: 'SC', tags: ['Frontend', 'UX'] },
+      { id: 'k12', title: 'Redis session management setup', priority: 'medium', assignee: 'JP', tags: ['Backend'] },
+    ],
+  },
+};

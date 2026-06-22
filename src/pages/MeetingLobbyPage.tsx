@@ -1,0 +1,305 @@
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Video, Plus, Search, Calendar, Clock, Users, Play, Brain, Download, Filter, Link, Mic, Camera } from 'lucide-react';
+import { useAppStore } from '../store/useAppStore';
+import { MEETINGS } from '../data/mockData';
+
+const tabs = ['All', 'Live', 'Upcoming', 'Completed'];
+
+export default function MeetingLobbyPage() {
+  const { startMeeting, setPage } = useAppStore();
+  const [activeTab, setActiveTab] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showNewMeetingModal, setShowNewMeetingModal] = useState(false);
+  const [isMicReady, setIsMicReady] = useState(true);
+  const [isCamReady, setIsCamReady] = useState(true);
+
+  const filtered = MEETINGS.filter(m => {
+    const matchesTab = activeTab === 'All' ||
+      (activeTab === 'Live' && m.status === 'live') ||
+      (activeTab === 'Upcoming' && m.status === 'scheduled') ||
+      (activeTab === 'Completed' && m.status === 'completed');
+    const matchesSearch = m.title.toLowerCase().includes(searchQuery.toLowerCase()) || m.host.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesTab && matchesSearch;
+  });
+
+  const statusConfig = {
+    live: { label: '● LIVE', bg: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', dot: 'bg-emerald-400' },
+    scheduled: { label: 'Upcoming', bg: 'bg-indigo-500/15 text-indigo-400 border-indigo-500/30', dot: 'bg-indigo-400' },
+    completed: { label: 'Completed', bg: 'bg-gray-500/15 text-gray-400 border-gray-500/30', dot: 'bg-gray-400' },
+  };
+
+  return (
+    <div className="p-6 space-y-6 page-fade-in">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between">
+        <div>
+          <h2 className="text-2xl font-black text-white">Meeting Hub</h2>
+          <p className="text-sm text-gray-400 mt-1">Manage, join, and schedule your team meetings</p>
+        </div>
+        <button
+          onClick={() => setShowNewMeetingModal(true)}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 font-semibold text-sm transition-all glow-indigo hover:scale-105 shrink-0"
+        >
+          <Plus className="w-4 h-4" />
+          New Meeting
+        </button>
+      </div>
+
+      {/* Quick Join Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="glass rounded-2xl border border-indigo-500/20 p-5 relative overflow-hidden"
+        style={{ background: 'linear-gradient(135deg, rgba(99,102,241,0.1) 0%, rgba(139,92,246,0.05) 100%)' }}
+      >
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+          <div className="flex-1">
+            <h3 className="font-bold text-white mb-1">Join a Meeting</h3>
+            <p className="text-sm text-gray-400 mb-3">Enter a meeting code to join instantly</p>
+            <div className="flex gap-2">
+              <div className="relative flex-1 max-w-xs">
+                <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <input
+                  type="text"
+                  placeholder="Enter meeting ID..."
+                  className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 focus:border-indigo-500/40 focus:outline-none text-sm text-white placeholder-gray-600 transition-all"
+                />
+              </div>
+              <button
+                onClick={startMeeting}
+                className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-sm font-semibold transition-all"
+              >
+                Join
+              </button>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            {/* Device preview */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setIsMicReady(!isMicReady)}
+                className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-all ${isMicReady ? 'bg-emerald-500/15 border border-emerald-500/30' : 'bg-red-500/15 border border-red-500/30'}`}
+              >
+                <Mic className={`w-5 h-5 ${isMicReady ? 'text-emerald-400' : 'text-red-400'}`} />
+                <span className={`text-xs ${isMicReady ? 'text-emerald-400' : 'text-red-400'}`}>Mic</span>
+              </button>
+              <button
+                onClick={() => setIsCamReady(!isCamReady)}
+                className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-all ${isCamReady ? 'bg-emerald-500/15 border border-emerald-500/30' : 'bg-red-500/15 border border-red-500/30'}`}
+              >
+                <Camera className={`w-5 h-5 ${isCamReady ? 'text-emerald-400' : 'text-red-400'}`} />
+                <span className={`text-xs ${isCamReady ? 'text-emerald-400' : 'text-red-400'}`}>Camera</span>
+              </button>
+            </div>
+            <button
+              onClick={startMeeting}
+              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 font-semibold text-sm transition-all hover:scale-105"
+            >
+              <Video className="w-4 h-4" />
+              Start Instant Meeting
+            </button>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        {/* Tabs */}
+        <div className="flex items-center gap-1 glass rounded-xl p-1 border border-white/5">
+          {tabs.map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                activeTab === tab
+                  ? 'bg-indigo-600 text-white shadow-lg'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              {tab}
+              <span className="ml-1.5 text-xs opacity-60">
+                {tab === 'All' ? MEETINGS.length : MEETINGS.filter(m =>
+                  tab === 'Live' ? m.status === 'live' :
+                  tab === 'Upcoming' ? m.status === 'scheduled' :
+                  m.status === 'completed'
+                ).length}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        {/* Search */}
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+          <input
+            type="text"
+            placeholder="Search meetings..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl glass border border-white/10 focus:border-indigo-500/40 focus:outline-none text-sm text-white placeholder-gray-600 transition-all bg-transparent"
+          />
+        </div>
+        <button className="flex items-center gap-2 px-3 py-2.5 rounded-xl glass border border-white/10 hover:border-white/20 text-sm text-gray-400 hover:text-white transition-all">
+          <Filter className="w-4 h-4" /> Filter
+        </button>
+      </div>
+
+      {/* Meetings Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {filtered.map((meeting, i) => {
+          const cfg = statusConfig[meeting.status];
+          return (
+            <motion.div
+              key={meeting.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.07 }}
+              whileHover={{ scale: 1.02, y: -4 }}
+              className="glass rounded-2xl border border-white/5 hover:border-white/15 overflow-hidden transition-all cursor-pointer"
+              onClick={() => meeting.status === 'live' ? startMeeting() : null}
+            >
+              {/* Card Header */}
+              <div className="p-4 border-b border-white/5">
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <div className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-xs font-semibold ${cfg.bg}`}>
+                    {meeting.status === 'live' && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 status-live" />}
+                    {cfg.label}
+                  </div>
+                  {meeting.hasSummary && (
+                    <span className="text-xs bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 px-2 py-1 rounded-lg">AI Summary</span>
+                  )}
+                </div>
+                <h3 className="font-bold text-white mb-1 leading-tight">{meeting.title}</h3>
+                <p className="text-xs text-gray-500 leading-relaxed">{meeting.description}</p>
+              </div>
+
+              {/* Card Body */}
+              <div className="p-4 space-y-3">
+                <div className="flex items-center gap-3 text-xs text-gray-500">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-5 h-5 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-[9px] font-bold">
+                      {meeting.hostAvatar}
+                    </div>
+                    <span>{meeting.host}</span>
+                  </div>
+                  <span>·</span>
+                  <span className="flex items-center gap-1"><Users className="w-3 h-3" />{meeting.participants}</span>
+                  <span>·</span>
+                  <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{meeting.duration}</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                  <Calendar className="w-3 h-3" />
+                  {new Date(meeting.scheduledAt).toLocaleString('en-IN', {
+                    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                  })}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {meeting.tags.map(tag => (
+                    <span key={tag} className="text-xs bg-white/5 text-gray-400 px-2 py-0.5 rounded-md">{tag}</span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Card Footer */}
+              <div className="px-4 pb-4 flex items-center gap-2">
+                {meeting.status === 'live' && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); startMeeting(); }}
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 text-sm font-semibold transition-all border border-emerald-500/20"
+                  >
+                    <Play className="w-4 h-4" /> Join Meeting
+                  </button>
+                )}
+                {meeting.status === 'scheduled' && (
+                  <button className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 text-sm font-semibold transition-all border border-indigo-500/20">
+                    <Calendar className="w-4 h-4" /> Schedule
+                  </button>
+                )}
+                {meeting.status === 'completed' && (
+                  <>
+                    {meeting.hasSummary && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setPage('ai-summary'); }}
+                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 text-sm font-semibold transition-all border border-indigo-500/20"
+                      >
+                        <Brain className="w-4 h-4" /> AI Summary
+                      </button>
+                    )}
+                    {meeting.hasRecording && (
+                      <button className="flex items-center gap-1 p-2.5 rounded-xl bg-white/5 hover:bg-white/8 text-gray-400 transition-all border border-white/5">
+                        <Download className="w-4 h-4" />
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* New Meeting Modal */}
+      {showNewMeetingModal && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setShowNewMeetingModal(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.9, y: 20 }}
+            animate={{ scale: 1, y: 0 }}
+            className="glass rounded-2xl border border-white/10 p-6 w-full max-w-md"
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 className="text-xl font-black text-white mb-2">Create New Meeting</h3>
+            <p className="text-sm text-gray-400 mb-6">Set up your meeting details and invite participants</p>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm text-gray-400 mb-1.5 block">Meeting Title</label>
+                <input
+                  type="text"
+                  placeholder="Sprint Review Q2 2026"
+                  className="w-full px-4 py-3 rounded-xl glass border border-white/10 focus:border-indigo-500/40 focus:outline-none text-sm text-white placeholder-gray-600 bg-transparent"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm text-gray-400 mb-1.5 block">Date</label>
+                  <input type="date" className="w-full px-4 py-3 rounded-xl glass border border-white/10 focus:border-indigo-500/40 focus:outline-none text-sm text-white bg-[#0d1117]" />
+                </div>
+                <div>
+                  <label className="text-sm text-gray-400 mb-1.5 block">Time</label>
+                  <input type="time" className="w-full px-4 py-3 rounded-xl glass border border-white/10 focus:border-indigo-500/40 focus:outline-none text-sm text-white bg-[#0d1117]" />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm text-gray-400 mb-1.5 block">Invite Team Members</label>
+                <input type="text" placeholder="Search by name or email..." className="w-full px-4 py-3 rounded-xl glass border border-white/10 focus:border-indigo-500/40 focus:outline-none text-sm text-white placeholder-gray-600 bg-transparent" />
+              </div>
+              <div className="flex items-center gap-3 mt-2">
+                <input type="checkbox" id="ai" className="rounded" defaultChecked />
+                <label htmlFor="ai" className="text-sm text-gray-300">Enable AI transcription & summary</label>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => { setShowNewMeetingModal(false); startMeeting(); }}
+                className="flex-1 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 font-semibold text-sm transition-all"
+              >
+                Create & Start Meeting
+              </button>
+              <button
+                onClick={() => setShowNewMeetingModal(false)}
+                className="px-4 py-3 rounded-xl glass border border-white/10 hover:border-white/20 text-sm text-gray-400 transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </div>
+  );
+}
