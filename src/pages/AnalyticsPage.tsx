@@ -64,12 +64,13 @@ export default function AnalyticsPage() {
   const kpis = KPI_BY_PERIOD[period];
 
   // Pick the right trend data based on period
-  const trendData =
+  const trendData = (
     period === 'Week'
       ? ANALYTICS_DATA.weeklyMeetings
       : period === 'Quarter'
       ? ANALYTICS_DATA.quarterlyTrend
-      : ANALYTICS_DATA.monthlyTrend;
+      : ANALYTICS_DATA.monthlyTrend
+  ) as Record<string, unknown>[];
 
   // Weekly activity bar chart uses the same weekly data regardless (shows current week breakdown)
   const barData = ANALYTICS_DATA.weeklyMeetings;
@@ -81,30 +82,30 @@ export default function AnalyticsPage() {
     rows.push([`Analytics Export — ${period} View`, '', '']);
     rows.push(['KPI', 'Value', 'Change']);
     kpis.forEach((k) => rows.push([k.label, k.value, k.change]));
-    rows.push([]);
+    rows.push([] as string[]);
 
     // ── Trend Data ────────────────────────────────────────
     if (period === 'Week') {
       rows.push(['Day', 'Meetings', 'Participants', 'Hours']);
-      (ANALYTICS_DATA.weeklyMeetings as any[]).forEach((r) =>
-        rows.push([r.day, r.meetings, r.participants, r.hours])
+      ANALYTICS_DATA.weeklyMeetings.forEach((r) =>
+        rows.push([r.day, String(r.meetings), String(r.participants), String(r.hours)])
       );
     } else {
       rows.push(['Period', 'Meetings', 'AI Summaries', 'Action Items']);
-      (trendData as any[]).forEach((r) =>
-        rows.push([r.month, r.meetings, r.aiSummaries, r.actionItems])
+      (trendData as { month: string; meetings: number; aiSummaries: number; actionItems: number }[]).forEach((r) =>
+        rows.push([r.month, String(r.meetings), String(r.aiSummaries), String(r.actionItems)])
       );
     }
-    rows.push([]);
+    rows.push([] as string[]);
 
     // ── Team Distribution ─────────────────────────────────
     rows.push(['Team', 'Meetings']);
-    ANALYTICS_DATA.teamActivity.forEach((t) => rows.push([t.name, t.meetings]));
-    rows.push([]);
+    ANALYTICS_DATA.teamActivity.forEach((t) => rows.push([t.name, String(t.meetings)]));
+    rows.push([] as string[]);
 
     // ── Productivity ──────────────────────────────────────
     rows.push(['Productivity Metric', 'Score (%)']);
-    ANALYTICS_DATA.productivity.forEach((p) => rows.push([p.name, p.value]));
+    ANALYTICS_DATA.productivity.forEach((p) => rows.push([p.name, String(p.value)]));
 
     const csv = rows
       .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))

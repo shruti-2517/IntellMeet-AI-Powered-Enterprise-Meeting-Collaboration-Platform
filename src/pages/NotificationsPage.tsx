@@ -14,49 +14,49 @@ const typeConfig = {
 const MOCK_NOTIFICATIONS = [
   {
     id: 'n1',
-    type: 'meeting',
+    type: 'meeting' as const,
     message: 'Your standup meeting starts in 10 minutes. Join now to be on time!',
     time: '09:20 AM',
     read: false,
   },
   {
     id: 'n2',
-    type: 'mention',
+    type: 'mention' as const,
     message: 'Alex Johnson mentioned you in #engineering: "Can you review the Redis caching PR?"',
     time: '09:15 AM',
     read: false,
   },
   {
     id: 'n3',
-    type: 'action',
+    type: 'action' as const,
     message: 'New task assigned to you: "Finalize Q3 roadmap slide deck" — due Friday.',
     time: '08:50 AM',
     read: false,
   },
   {
     id: 'n4',
-    type: 'system',
+    type: 'system' as const,
     message: 'AI Summary is ready for your "Product Strategy" meeting from yesterday.',
     time: '08:30 AM',
     read: true,
   },
   {
     id: 'n5',
-    type: 'meeting',
+    type: 'meeting' as const,
     message: 'Priya Sharma has started a video call in #design. Click to join.',
     time: 'Yesterday',
     read: true,
   },
   {
     id: 'n6',
-    type: 'action',
+    type: 'action' as const,
     message: 'James Park completed the task "Deploy Redis config to staging" you assigned.',
     time: 'Yesterday',
     read: true,
   },
   {
     id: 'n7',
-    type: 'system',
+    type: 'system' as const,
     message: 'Welcome to IntelliMeet! Your workspace is set up and ready to go 🚀',
     time: '2 days ago',
     read: true,
@@ -79,7 +79,7 @@ export default function NotificationsPage() {
           message: (n.message ?? n.content ?? n.title ?? '') as string,
           time: n.createdAt
             ? new Date(n.createdAt as string).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
-            : (n.time as string ?? ''),
+            : ((n.time as string) ?? ''),
           read: (n.read ?? n.isRead ?? false) as boolean,
         }));
         setNotifications(normalized);
