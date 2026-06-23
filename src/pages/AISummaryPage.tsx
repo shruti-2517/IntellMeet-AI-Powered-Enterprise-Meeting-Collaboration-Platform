@@ -8,11 +8,167 @@ export default function AISummaryPage() {
   const { setPage } = useAppStore();
   const [expandedSection, setExpandedSection] = useState<string | null>('summary');
   const [copied, setCopied] = useState(false);
+  const [shared, setShared] = useState(false);
   const [activeTab, setActiveTab] = useState<'summary' | 'transcript' | 'actions'>('summary');
 
-  const handleCopy = () => {
+  const getSummaryText = () => {
+    const lines: string[] = [
+      `📋 ${AI_SUMMARY.meetingTitle}`,
+      `📅 ${AI_SUMMARY.date}  ·  ⏱ ${AI_SUMMARY.duration}  ·  👥 ${AI_SUMMARY.participants.length} participants`,
+      '',
+      '── SUMMARY ──',
+      AI_SUMMARY.summary,
+      '',
+      '── KEY POINTS ──',
+      ...AI_SUMMARY.keyPoints.map((p, i) => `${i + 1}. ${p}`),
+      '',
+      '── ACTION ITEMS ──',
+      ...AI_SUMMARY.actionItems.map(a => `• ${a.task}  →  ${a.assignee} (Due: ${a.due})`),
+    ];
+    return lines.join('\n');
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(getSummaryText());
+    } catch {
+      // fallback for older browsers
+      const ta = document.createElement('textarea');
+      ta.value = getSummaryText();
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: AI_SUMMARY.meetingTitle,
+      text: `AI Meeting Summary: ${AI_SUMMARY.meetingTitle}\n${AI_SUMMARY.date} · ${AI_SUMMARY.duration}`,
+      url: window.location.href,
+    };
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (e) {
+        // user cancelled or unsupported
+      }
+    } else {
+      // fallback: copy link to clipboard
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+      } catch {
+        const ta = document.createElement('textarea');
+        ta.value = window.location.href;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      setShared(true);
+      setTimeout(() => setShared(false), 2000);
+    }
+  };
+
+  const handleExportPDF = () => {
+    const actionRows = AI_SUMMARY.actionItems
+      .map(
+        (a, i) =>
+          `<tr style="background:${i % 2 === 0 ? '#1e1e2e' : '#16161e'}">
+            <td style="padding:10px 14px;color:#c9d1d9">${a.task}</td>
+            <td style="padding:10px 14px;color:#c9d1d9;text-align:center">${a.assignee}</td>
+            <td style="padding:10px 14px;color:#c9d1d9;text-align:center">${a.due}</td>
+          </tr>`,
+      )
+      .join('');
+
+    const keyPointRows = AI_SUMMARY.keyPoints
+      .map(
+        (p, i) =>
+          `<div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:10px">
+            <span style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;min-width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">${i + 1}</span>
+            <span style="color:#c9d1d9;font-size:14px;line-height:1.6">${p}</span>
+          </div>`,
+      )
+      .join('');
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>AI Meeting Summary – ${AI_SUMMARY.meetingTitle}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #0d0d17; color: #e6edf3; padding: 40px; }
+    h1 { font-size: 24px; font-weight: 900; color: #fff; margin-bottom: 6px; }
+    .meta { font-size: 13px; color: #8b949e; margin-bottom: 32px; display:flex; gap: 18px; }
+    .badge { background: linear-gradient(135deg, rgba(99,102,241,.18), rgba(139,92,246,.12)); border: 1px solid rgba(99,102,241,.3); color: #a5b4fc; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; display:inline-flex; align-items:center; gap:6px; margin-bottom: 32px; }
+    .section { margin-bottom: 32px; }
+    .section-title { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 14px; display:flex; align-items:center; gap:8px; border-bottom: 1px solid rgba(255,255,255,.07); padding-bottom: 10px; }
+    .summary-text { font-size: 14px; color: #c9d1d9; line-height: 1.8; white-space: pre-line; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.07); border-radius: 12px; padding: 18px; }
+    table { width: 100%; border-collapse: collapse; border-radius: 12px; overflow: hidden; }
+    thead tr { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+    thead th { padding: 12px 14px; color: #fff; font-size: 13px; font-weight: 600; text-align: left; }
+    .stats { display:flex; gap:16px; margin-bottom: 32px; }
+    .stat-card { flex:1; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 16px; text-align:center; }
+    .stat-card .val { font-size: 22px; font-weight: 900; color: #a5b4fc; }
+    .stat-card .lbl { font-size: 11px; color: #8b949e; margin-top: 4px; }
+    .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.07); font-size: 11px; color: #8b949e; display:flex; justify-content:space-between; }
+    @media print { body { background: #fff !important; color: #111 !important; } }
+  </style>
+</head>
+<body>
+  <div class="badge">🤖 Powered by OpenAI Whisper + GPT-4 &nbsp;·&nbsp; AI Analysis Complete</div>
+  <h1>${AI_SUMMARY.meetingTitle}</h1>
+  <div class="meta">
+    <span>📅 ${AI_SUMMARY.date}</span>
+    <span>⏱ ${AI_SUMMARY.duration}</span>
+    <span>👥 ${AI_SUMMARY.participants.join(', ')}</span>
+  </div>
+
+  <div class="stats">
+    <div class="stat-card"><div class="val">${AI_SUMMARY.sentiment}</div><div class="lbl">Sentiment</div></div>
+    <div class="stat-card"><div class="val">${AI_SUMMARY.engagementScore}%</div><div class="lbl">Engagement</div></div>
+    <div class="stat-card"><div class="val">${AI_SUMMARY.followUpReduction}</div><div class="lbl">Follow-up Saved</div></div>
+    <div class="stat-card"><div class="val">${AI_SUMMARY.actionItems.length}</div><div class="lbl">Action Items</div></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">📝 Meeting Summary</div>
+    <div class="summary-text">${AI_SUMMARY.summary}</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">⚡ Key Discussion Points</div>
+    ${keyPointRows}
+  </div>
+
+  <div class="section">
+    <div class="section-title">✅ Action Items</div>
+    <table>
+      <thead><tr><th>Task</th><th style="text-align:center">Assignee</th><th style="text-align:center">Due Date</th></tr></thead>
+      <tbody>${actionRows}</tbody>
+    </table>
+  </div>
+
+  <div class="footer">
+    <span>Generated by IntellMeet AI</span>
+    <span>${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+  </div>
+
+  <script>window.onload = () => { window.print(); window.onafterprint = () => window.close(); };<\/script>
+</body>
+</html>`;
+
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, '_blank');
+    if (win) {
+      win.onunload = () => URL.revokeObjectURL(url);
+    }
   };
 
   const sentimentColors = {
@@ -44,10 +200,11 @@ export default function AISummaryPage() {
             {copied ? <CheckCircle className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
             {copied ? 'Copied!' : 'Copy'}
           </button>
-          <button className="flex items-center gap-2 px-3 py-2 rounded-xl glass border border-white/10 hover:border-white/20 text-sm text-gray-400 hover:text-white transition-all">
-            <Share2 className="w-4 h-4" /> Share
+          <button onClick={handleShare} className="flex items-center gap-2 px-3 py-2 rounded-xl glass border border-white/10 hover:border-white/20 text-sm text-gray-400 hover:text-white transition-all">
+            {shared ? <CheckCircle className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
+            {shared ? 'Link Copied!' : 'Share'}
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-sm font-semibold transition-all">
+          <button onClick={handleExportPDF} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-sm font-semibold transition-all">
             <Download className="w-4 h-4" /> Export PDF
           </button>
         </div>
