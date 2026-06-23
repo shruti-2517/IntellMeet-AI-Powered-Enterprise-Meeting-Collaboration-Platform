@@ -4,17 +4,17 @@ import { Plus, MoreHorizontal, Zap, Clock, CheckCircle, Circle, AlertCircle } fr
 import { taskService } from '../services/task.service';
 
 const priorityConfig = {
-  high:   { label: 'High',   icon: AlertCircle, color: 'text-red-400',   bg: 'bg-red-500/15 border-red-500/30' },
-  urgent: { label: 'Urgent', icon: AlertCircle, color: 'text-red-400',   bg: 'bg-red-500/15 border-red-500/30' },
-  medium: { label: 'Medium', icon: Clock,        color: 'text-amber-400', bg: 'bg-amber-500/15 border-amber-500/30' },
-  low:    { label: 'Low',    icon: Circle,       color: 'text-green-400', bg: 'bg-green-500/15 border-green-500/30' },
+  high: { label: 'High', icon: AlertCircle, color: 'text-red-400', bg: 'bg-red-500/15 border-red-500/30' },
+  urgent: { label: 'Urgent', icon: AlertCircle, color: 'text-red-400', bg: 'bg-red-500/15 border-red-500/30' },
+  medium: { label: 'Medium', icon: Clock, color: 'text-amber-400', bg: 'bg-amber-500/15 border-amber-500/30' },
+  low: { label: 'Low', icon: Circle, color: 'text-green-400', bg: 'bg-green-500/15 border-green-500/30' },
 };
 
 const COLUMN_META: Record<string, { title: string; color: string; bg: string; apiStatus: string }> = {
-  todo:         { title: 'To Do',       color: '#6366f1', bg: 'from-indigo-500/10', apiStatus: 'todo' },
-  'in-progress':{ title: 'In Progress', color: '#f59e0b', bg: 'from-amber-500/10',  apiStatus: 'in-progress' },
-  review:       { title: 'Review',      color: '#06b6d4', bg: 'from-cyan-500/10',   apiStatus: 'review' },
-  completed:    { title: 'Done',        color: '#10b981', bg: 'from-emerald-500/10',apiStatus: 'completed' },
+  todo: { title: 'To Do', color: '#6366f1', bg: 'from-indigo-500/10', apiStatus: 'todo' },
+  'in-progress': { title: 'In Progress', color: '#f59e0b', bg: 'from-amber-500/10', apiStatus: 'in-progress' },
+  review: { title: 'Review', color: '#06b6d4', bg: 'from-cyan-500/10', apiStatus: 'review' },
+  completed: { title: 'Done', color: '#10b981', bg: 'from-emerald-500/10', apiStatus: 'completed' },
 };
 
 interface Task {
@@ -31,7 +31,6 @@ type ColumnMap = Record<string, Task[]>;
 
 // ── Card context menu ─────────────────────────────────────────────────────────
 function CardMenu({
-  card,
   colKey,
   onEdit,
   onMoveTo,
@@ -197,12 +196,12 @@ export default function KanbanPage() {
       [fromCol]: prev[fromCol].filter(c => c._id !== card._id),
       [toCol]: [...prev[toCol], { ...card, status: COLUMN_META[toCol].apiStatus, column: toCol }],
     }));
-    taskService.updateTask(card._id, { status: COLUMN_META[toCol].apiStatus }).catch(() => {});
+    taskService.updateTask(card._id, { status: COLUMN_META[toCol].apiStatus }).catch(() => { });
   };
 
   const handleDelete = (cardId: string, colKey: string) => {
     setColumns(prev => ({ ...prev, [colKey]: prev[colKey].filter(c => c._id !== cardId) }));
-    taskService.deleteTask(cardId).catch(() => {});
+    taskService.deleteTask(cardId).catch(() => { });
   };
 
   const startEdit = (card: Task) => {
@@ -216,7 +215,7 @@ export default function KanbanPage() {
       ...prev,
       [colKey]: prev[colKey].map(c => c._id === cardId ? { ...c, title: editTitle } : c),
     }));
-    taskService.updateTask(cardId, { title: editTitle }).catch(() => {});
+    taskService.updateTask(cardId, { title: editTitle }).catch(() => { });
     setEditingId(null);
     setEditTitle('');
   };
@@ -323,9 +322,8 @@ export default function KanbanPage() {
                       transition={{ delay: i * 0.05 }}
                       draggable={!isEditing}
                       onDragStart={() => !isEditing && handleDragStart(card._id, colKey)}
-                      className={`kanban-card glass rounded-xl border border-white/5 hover:border-white/15 p-4 transition-all ${
-                        isEditing ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'
-                      } ${draggedCard?.id === card._id ? 'opacity-50' : ''}`}
+                      className={`kanban-card glass rounded-xl border border-white/5 hover:border-white/15 p-4 transition-all ${isEditing ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'
+                        } ${draggedCard?.id === card._id ? 'opacity-50' : ''}`}
                     >
                       {/* Priority badge + 3-dots */}
                       <div className="flex items-start justify-between gap-2 mb-2.5">
@@ -341,11 +339,10 @@ export default function KanbanPage() {
                               e.stopPropagation();
                               setOpenMenuId(isMenuOpen ? null : card._id);
                             }}
-                            className={`p-1 rounded-lg transition-all ${
-                              isMenuOpen
-                                ? 'bg-white/10 text-white'
-                                : 'text-gray-600 hover:text-gray-300 hover:bg-white/5'
-                            }`}
+                            className={`p-1 rounded-lg transition-all ${isMenuOpen
+                              ? 'bg-white/10 text-white'
+                              : 'text-gray-600 hover:text-gray-300 hover:bg-white/5'
+                              }`}
                           >
                             <MoreHorizontal className="w-3.5 h-3.5" />
                           </button>
