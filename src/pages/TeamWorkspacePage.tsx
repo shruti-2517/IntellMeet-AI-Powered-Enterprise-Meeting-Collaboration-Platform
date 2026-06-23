@@ -45,7 +45,6 @@ function InviteModal({ teams, loading: teamsLoading, onClose }: { teams: Team[];
   const linkRef = useRef<HTMLInputElement>(null);
 
   const noTeams = !teamsLoading && teams.length === 0;
-  const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 
   const copyLink = async (link: string) => {
     try {
@@ -157,11 +156,10 @@ function InviteModal({ teams, loading: teamsLoading, onClose }: { teams: Team[];
               <button
                 type="button"
                 onClick={() => copyLink(inviteLink)}
-                className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  copied
+                className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${copied
                     ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                     : 'bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30'
-                }`}
+                  }`}
               >
                 {copied ? <><CheckCircle className="w-3.5 h-3.5" /> Copied!</> : <><Copy className="w-3.5 h-3.5" /> Copy</>}
               </button>
@@ -439,11 +437,10 @@ export default function TeamWorkspacePage() {
                       <span className={`text-xs ${status.text}`}>{status.label}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`text-xs px-2 py-0.5 rounded-md capitalize ${
-                        member.role === 'admin' || member.role === 'owner'
+                      <span className={`text-xs px-2 py-0.5 rounded-md capitalize ${member.role === 'admin' || member.role === 'owner'
                           ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
                           : 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/30'
-                      }`}>
+                        }`}>
                         {member.role}
                       </span>
                       <span className="text-xs text-gray-500 truncate">{member.team}</span>
@@ -486,11 +483,10 @@ export default function TeamWorkspacePage() {
                   </button>
                   <button
                     onClick={() => setOpenStatsId(openStatsId === (member.id || String(i)) ? null : (member.id || String(i)))}
-                    className={`p-2 rounded-xl text-gray-400 transition-all border ${
-                      openStatsId === (member.id || String(i))
+                    className={`p-2 rounded-xl text-gray-400 transition-all border ${openStatsId === (member.id || String(i))
                         ? 'bg-violet-600/20 border-violet-500/30 text-violet-400'
                         : 'bg-white/5 hover:bg-violet-600/15 hover:text-violet-400 hover:border-violet-500/30 border-white/5'
-                    }`}
+                      }`}
                   >
                     <BarChart3 className="w-3.5 h-3.5" />
                   </button>
