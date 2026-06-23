@@ -11,6 +11,58 @@ const typeConfig = {
   system: { icon: Info, color: 'text-cyan-400', bg: 'bg-cyan-500/10 border-cyan-500/20' },
 };
 
+const MOCK_NOTIFICATIONS = [
+  {
+    id: 'n1',
+    type: 'meeting',
+    message: 'Your standup meeting starts in 10 minutes. Join now to be on time!',
+    time: '09:20 AM',
+    read: false,
+  },
+  {
+    id: 'n2',
+    type: 'mention',
+    message: 'Alex Johnson mentioned you in #engineering: "Can you review the Redis caching PR?"',
+    time: '09:15 AM',
+    read: false,
+  },
+  {
+    id: 'n3',
+    type: 'action',
+    message: 'New task assigned to you: "Finalize Q3 roadmap slide deck" — due Friday.',
+    time: '08:50 AM',
+    read: false,
+  },
+  {
+    id: 'n4',
+    type: 'system',
+    message: 'AI Summary is ready for your "Product Strategy" meeting from yesterday.',
+    time: '08:30 AM',
+    read: true,
+  },
+  {
+    id: 'n5',
+    type: 'meeting',
+    message: 'Priya Sharma has started a video call in #design. Click to join.',
+    time: 'Yesterday',
+    read: true,
+  },
+  {
+    id: 'n6',
+    type: 'action',
+    message: 'James Park completed the task "Deploy Redis config to staging" you assigned.',
+    time: 'Yesterday',
+    read: true,
+  },
+  {
+    id: 'n7',
+    type: 'system',
+    message: 'Welcome to IntelliMeet! Your workspace is set up and ready to go 🚀',
+    time: '2 days ago',
+    read: true,
+  },
+];
+
 export default function NotificationsPage() {
   const { notifications, unreadCount, setNotifications, markNotificationRead, markAllRead } = useAppStore();
 
@@ -19,6 +71,7 @@ export default function NotificationsPage() {
       try {
         const res = await notificationService.getNotifications();
         const list = Array.isArray(res) ? res : res?.notifications ?? [];
+        if (list.length === 0) throw new Error('empty');
         // Normalize to frontend shape
         const normalized = list.map((n: Record<string, unknown>) => ({
           id: (n._id ?? n.id) as string,
@@ -31,7 +84,8 @@ export default function NotificationsPage() {
         }));
         setNotifications(normalized);
       } catch {
-        // Keep existing notifications (or empty)
+        // Backend unavailable or empty — seed with realistic mock data
+        setNotifications(MOCK_NOTIFICATIONS);
       }
     };
     fetchNotifications();

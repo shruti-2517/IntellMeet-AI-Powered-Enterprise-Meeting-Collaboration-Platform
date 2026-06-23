@@ -15,4 +15,9 @@ export const teamService = {
     const { data } = await api.get(`/teams/${id}/members`);
     return data.data;
   },
+
+  async inviteMember(teamId: string, email: string, role: string = 'member') {
+    const { data } = await api.post(`/teams/${teamId}/invite`, { email, role });
+    return data.data;
+  },
 };

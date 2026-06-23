@@ -1,10 +1,13 @@
-import { motion } from 'framer-motion';
+import { useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, Users, Brain, Clock, Download, BarChart2, Activity } from 'lucide-react';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
 import { ANALYTICS_DATA } from '../data/mockData';
+
+type Period = 'Week' | 'Month' | 'Quarter';
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -22,97 +25,225 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-export default function AnalyticsPage() {
-  const kpis = [
+const KPI_BY_PERIOD: Record<Period, { label: string; value: string; change: string; icon: any; color: string }[]> = {
+  Week: [
+    { label: 'Total Meetings', value: '54', change: '+7%', icon: Activity, color: 'from-indigo-500 to-violet-600' },
+    { label: 'AI Summaries', value: '48', change: '+18%', icon: Brain, color: 'from-violet-500 to-purple-600' },
+    { label: 'Hours in Meetings', value: '76h', change: '-3%', icon: Clock, color: 'from-cyan-500 to-blue-600' },
+    { label: 'Active Members', value: '8', change: '+1', icon: Users, color: 'from-emerald-500 to-teal-600' },
+  ],
+  Month: [
     { label: 'Total Meetings', value: '221', change: '+13%', icon: Activity, color: 'from-indigo-500 to-violet-600' },
     { label: 'AI Summaries', value: '198', change: '+22%', icon: Brain, color: 'from-violet-500 to-purple-600' },
     { label: 'Hours in Meetings', value: '312h', change: '-8%', icon: Clock, color: 'from-cyan-500 to-blue-600' },
     { label: 'Active Members', value: '8', change: '+2', icon: Users, color: 'from-emerald-500 to-teal-600' },
-  ];
+  ],
+  Quarter: [
+    { label: 'Total Meetings', value: '826', change: '+8%', icon: Activity, color: 'from-indigo-500 to-violet-600' },
+    { label: 'AI Summaries', value: '711', change: '+11%', icon: Brain, color: 'from-violet-500 to-purple-600' },
+    { label: 'Hours in Meetings', value: '1,140h', change: '+4%', icon: Clock, color: 'from-cyan-500 to-blue-600' },
+    { label: 'Active Members', value: '8', change: '+3', icon: Users, color: 'from-emerald-500 to-teal-600' },
+  ],
+};
+
+const TREND_CHART_LABEL: Record<Period, string> = {
+  Week: 'Daily Trend',
+  Month: 'Monthly Trend',
+  Quarter: 'Quarterly Trend',
+};
+
+const TREND_DATA_KEY: Record<Period, string> = {
+  Week: 'day',
+  Month: 'month',
+  Quarter: 'month',
+};
+
+export default function AnalyticsPage() {
+  const [period, setPeriod] = useState<Period>('Month');
+
+  const kpis = KPI_BY_PERIOD[period];
+
+  // Pick the right trend data based on period
+  const trendData =
+    period === 'Week'
+      ? ANALYTICS_DATA.weeklyMeetings
+      : period === 'Quarter'
+      ? ANALYTICS_DATA.quarterlyTrend
+      : ANALYTICS_DATA.monthlyTrend;
+
+  // Weekly activity bar chart uses the same weekly data regardless (shows current week breakdown)
+  const barData = ANALYTICS_DATA.weeklyMeetings;
+
+  const exportCSV = useCallback(() => {
+    const rows: string[][] = [];
+
+    // ── KPI Summary ──────────────────────────────────────
+    rows.push([`Analytics Export — ${period} View`, '', '']);
+    rows.push(['KPI', 'Value', 'Change']);
+    kpis.forEach((k) => rows.push([k.label, k.value, k.change]));
+    rows.push([]);
+
+    // ── Trend Data ────────────────────────────────────────
+    if (period === 'Week') {
+      rows.push(['Day', 'Meetings', 'Participants', 'Hours']);
+      (ANALYTICS_DATA.weeklyMeetings as any[]).forEach((r) =>
+        rows.push([r.day, r.meetings, r.participants, r.hours])
+      );
+    } else {
+      rows.push(['Period', 'Meetings', 'AI Summaries', 'Action Items']);
+      (trendData as any[]).forEach((r) =>
+        rows.push([r.month, r.meetings, r.aiSummaries, r.actionItems])
+      );
+    }
+    rows.push([]);
+
+    // ── Team Distribution ─────────────────────────────────
+    rows.push(['Team', 'Meetings']);
+    ANALYTICS_DATA.teamActivity.forEach((t) => rows.push([t.name, t.meetings]));
+    rows.push([]);
+
+    // ── Productivity ──────────────────────────────────────
+    rows.push(['Productivity Metric', 'Score (%)']);
+    ANALYTICS_DATA.productivity.forEach((p) => rows.push([p.name, p.value]));
+
+    const csv = rows
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `intellmeet-analytics-${period.toLowerCase()}-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, [period, kpis, trendData]);
 
   return (
     <div className="p-6 space-y-6 page-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-black text-white">Analytics & Insights</h2>
+          <h2 className="text-2xl font-black text-white">Analytics &amp; Insights</h2>
           <p className="text-sm text-gray-400 mt-1">Track meeting productivity and team engagement</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1 glass rounded-xl border border-white/5 p-1">
-            {['Week', 'Month', 'Quarter'].map((t) => (
-              <button key={t} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${t === 'Month' ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:text-white'}`}>{t}</button>
+            {(['Week', 'Month', 'Quarter'] as Period[]).map((t) => (
+              <button
+                key={t}
+                onClick={() => setPeriod(t)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  t === period
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
+                    : 'text-gray-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                {t}
+              </button>
             ))}
           </div>
-          <button className="flex items-center gap-2 px-3 py-2 rounded-xl glass border border-white/10 hover:border-white/20 text-sm text-gray-400 hover:text-white transition-all">
-            <Download className="w-4 h-4" /> Export
+          <button
+            onClick={exportCSV}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl glass border border-white/10 hover:border-indigo-500/40 hover:text-white text-sm text-gray-400 transition-all active:scale-95"
+          >
+            <Download className="w-4 h-4" /> Export CSV
           </button>
         </div>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {kpis.map((kpi, i) => (
-          <motion.div
-            key={kpi.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.08 }}
-            className="glass rounded-2xl p-5 border border-white/5 hover:border-white/10 transition-all"
-          >
-            <div className="flex items-start justify-between mb-3">
-              <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${kpi.color} flex items-center justify-center`}>
-                <kpi.icon className="w-4 h-4 text-white" />
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={period}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.25 }}
+          className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+        >
+          {kpis.map((kpi, i) => (
+            <motion.div
+              key={kpi.label}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.08 }}
+              className="glass rounded-2xl p-5 border border-white/5 hover:border-white/10 transition-all"
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${kpi.color} flex items-center justify-center`}>
+                  <kpi.icon className="w-4 h-4 text-white" />
+                </div>
+                <span className={`text-xs px-2 py-0.5 rounded-lg ${kpi.change.startsWith('+') ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'}`}>
+                  {kpi.change}
+                </span>
               </div>
-              <span className={`text-xs px-2 py-0.5 rounded-lg ${kpi.change.startsWith('+') ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'}`}>
-                {kpi.change}
-              </span>
-            </div>
-            <div className="text-3xl font-black text-white mb-0.5">{kpi.value}</div>
-            <div className="text-xs text-gray-400">{kpi.label}</div>
-          </motion.div>
-        ))}
-      </div>
+              <div className="text-3xl font-black text-white mb-0.5">{kpi.value}</div>
+              <div className="text-xs text-gray-400">{kpi.label}</div>
+            </motion.div>
+          ))}
+        </motion.div>
+      </AnimatePresence>
 
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Monthly Trend */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass rounded-2xl border border-white/5 p-5">
-          <div className="flex items-center justify-between mb-5">
-            <div>
-              <h3 className="font-bold text-white flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-indigo-400" /> Monthly Trend
-              </h3>
-              <p className="text-xs text-gray-500 mt-0.5">Meetings, AI summaries & action items</p>
+        {/* Trend Chart */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`trend-${period}`}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="glass rounded-2xl border border-white/5 p-5"
+          >
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h3 className="font-bold text-white flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-indigo-400" /> {TREND_CHART_LABEL[period]}
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">Meetings, AI summaries &amp; action items</p>
+              </div>
             </div>
-          </div>
-          <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={ANALYTICS_DATA.monthlyTrend}>
-              <defs>
-                <linearGradient id="grad1" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="grad2" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="grad3" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-              <XAxis dataKey="month" tick={{ fill: '#6b7280', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: '#6b7280', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '12px' }} />
-              <Area type="monotone" dataKey="meetings" name="Meetings" stroke="#6366f1" fill="url(#grad1)" strokeWidth={2} />
-              <Area type="monotone" dataKey="aiSummaries" name="AI Summaries" stroke="#8b5cf6" fill="url(#grad2)" strokeWidth={2} />
-              <Area type="monotone" dataKey="actionItems" name="Action Items" stroke="#f59e0b" fill="url(#grad3)" strokeWidth={2} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </motion.div>
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart data={trendData}>
+                <defs>
+                  <linearGradient id="grad1" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="grad2" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="grad3" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                <XAxis dataKey={TREND_DATA_KEY[period]} tick={{ fill: '#6b7280', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: '#6b7280', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '12px' }} />
+                {period === 'Week' ? (
+                  <>
+                    <Area type="monotone" dataKey="meetings" name="Meetings" stroke="#6366f1" fill="url(#grad1)" strokeWidth={2} />
+                    <Area type="monotone" dataKey="hours" name="Hours" stroke="#06b6d4" fill="url(#grad3)" strokeWidth={2} />
+                  </>
+                ) : (
+                  <>
+                    <Area type="monotone" dataKey="meetings" name="Meetings" stroke="#6366f1" fill="url(#grad1)" strokeWidth={2} />
+                    <Area type="monotone" dataKey="aiSummaries" name="AI Summaries" stroke="#8b5cf6" fill="url(#grad2)" strokeWidth={2} />
+                    <Area type="monotone" dataKey="actionItems" name="Action Items" stroke="#f59e0b" fill="url(#grad3)" strokeWidth={2} />
+                  </>
+                )}
+              </AreaChart>
+            </ResponsiveContainer>
+          </motion.div>
+        </AnimatePresence>
 
         {/* Weekly Activity */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="glass rounded-2xl border border-white/5 p-5">
@@ -121,11 +252,11 @@ export default function AnalyticsPage() {
               <h3 className="font-bold text-white flex items-center gap-2">
                 <BarChart2 className="w-4 h-4 text-cyan-400" /> Weekly Activity
               </h3>
-              <p className="text-xs text-gray-500 mt-0.5">Meetings & participants by day</p>
+              <p className="text-xs text-gray-500 mt-0.5">Meetings &amp; hours by day of week</p>
             </div>
           </div>
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={ANALYTICS_DATA.weeklyMeetings} barSize={14}>
+            <BarChart data={barData} barSize={14}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
               <XAxis dataKey="day" tick={{ fill: '#6b7280', fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: '#6b7280', fontSize: 11 }} axisLine={false} tickLine={false} />
@@ -170,7 +301,7 @@ export default function AnalyticsPage() {
         {/* Productivity Metrics */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="lg:col-span-2 glass rounded-2xl border border-white/5 p-5">
           <h3 className="font-bold text-white mb-1">Productivity Metrics</h3>
-          <p className="text-xs text-gray-500 mb-5">Key performance indicators for this month</p>
+          <p className="text-xs text-gray-500 mb-5">Key performance indicators for this {period.toLowerCase()}</p>
           <div className="space-y-4">
             {ANALYTICS_DATA.productivity.map((metric, i) => (
               <div key={metric.name}>

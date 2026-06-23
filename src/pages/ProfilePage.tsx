@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Camera, Edit3, Mail, Shield, Calendar, BarChart3, Video, CheckSquare, Crown, Save, CheckCircle } from 'lucide-react';
 import { useAppStore } from '../store/useAppStore';
@@ -11,6 +11,33 @@ export default function ProfilePage() {
   const [saved, setSaved] = useState(false);
   const [name, setName] = useState(currentUser?.name ?? '');
   const [bio, setBio] = useState(currentUser?.bio ?? '');
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Show local preview immediately
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setAvatarPreview(ev.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+    // Try to upload to backend
+    setUploadingAvatar(true);
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+      await userService.updateProfile(formData as any);
+    } catch {
+      // Keep local preview even if API fails
+    } finally {
+      setUploadingAvatar(false);
+    }
+    // Reset input so the same file can be re-selected
+    e.target.value = '';
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -50,11 +77,39 @@ export default function ProfilePage() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 relative z-10">
           {/* Avatar */}
           <div className="relative shrink-0">
-            <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-3xl font-black shadow-2xl glow-indigo">
-              {currentUser?.avatar ?? '?'}
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarChange}
+            />
+            {/* Avatar display */}
+            <div className="w-24 h-24 rounded-2xl overflow-hidden shadow-2xl glow-indigo">
+              {avatarPreview ? (
+                <img src={avatarPreview} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-3xl font-black">
+                  {currentUser?.avatar ?? '?'}
+                </div>
+              )}
             </div>
-            <button className="absolute -bottom-2 -right-2 w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 flex items-center justify-center text-white transition-all">
-              <Camera className="w-3.5 h-3.5" />
+            {/* Camera button */}
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              title="Change profile photo"
+              className={`absolute -bottom-2 -right-2 w-8 h-8 rounded-xl border border-white/10 flex items-center justify-center text-white transition-all ${
+                uploadingAvatar
+                  ? 'bg-indigo-600/60 cursor-wait'
+                  : 'bg-white/10 hover:bg-indigo-600/60 hover:border-indigo-500/50 hover:scale-110'
+              }`}
+            >
+              {uploadingAvatar ? (
+                <div className="w-3.5 h-3.5 border border-white/40 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Camera className="w-3.5 h-3.5" />
+              )}
             </button>
           </div>
 
@@ -144,17 +199,39 @@ export default function ProfilePage() {
         {/* Weekly Activity */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="glass rounded-2xl border border-white/5 p-5">
           <h3 className="font-bold text-white mb-4">Weekly Activity</h3>
-          <div className="flex items-end gap-2 h-20">
+          {/* Chart area — fixed 96px tall so pixel heights work correctly */}
+          <div className="relative" style={{ height: '96px' }}>
+            {/* Background grid lines */}
+            {[0, 1, 2, 3].map(i => (
+              <div
+                key={i}
+                className="absolute left-0 right-0 border-t border-white/5"
+                style={{ bottom: `${i * 32}px` }}
+              />
+            ))}
+            {/* Bars */}
+            <div className="absolute inset-0 flex items-end gap-2">
+              {activity.map((a) => {
+                const barHeight = Math.round((a.value / 100) * 88); // max 88px within 96px container
+                return (
+                  <div key={a.day} className="flex-1 flex flex-col items-center gap-1">
+                    <motion.div
+                      initial={{ height: 0 }}
+                      animate={{ height: barHeight }}
+                      transition={{ duration: 0.8, delay: 0.4, ease: 'easeOut' }}
+                      className="w-full rounded-t-lg bg-gradient-to-t from-indigo-600 to-violet-500"
+                      style={{ minHeight: barHeight > 0 ? 4 : 0 }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          {/* Day labels below chart */}
+          <div className="flex gap-2 mt-2">
             {activity.map((a) => (
-              <div key={a.day} className="flex-1 flex flex-col items-center gap-1">
-                <motion.div
-                  initial={{ height: 0 }}
-                  animate={{ height: `${a.value}%` }}
-                  transition={{ duration: 0.8, delay: 0.4 }}
-                  className="w-full rounded-t-md bg-gradient-to-t from-indigo-600 to-violet-500 opacity-80"
-                  style={{ maxHeight: '80px' }}
-                />
-                <span className="text-xs text-gray-600">{a.day}</span>
+              <div key={a.day} className="flex-1 text-center">
+                <span className="text-[11px] text-gray-500">{a.day}</span>
               </div>
             ))}
           </div>

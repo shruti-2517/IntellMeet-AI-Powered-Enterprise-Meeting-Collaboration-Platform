@@ -36,6 +36,12 @@ export interface Notification {
   read: boolean;
 }
 
+export interface PendingChatMember {
+  id: string;
+  name: string;
+  avatar: string;
+}
+
 interface AppState {
   // ── Navigation ────────────────────────────────────────────────────────────
   currentPage: Page;
@@ -59,6 +65,10 @@ interface AppState {
   notifications: Notification[];
   unreadCount: number;
 
+  // ── Chat ──────────────────────────────────────────────────────────────────
+  /** Member to open a DM with when navigating to chat page */
+  pendingChatMember: PendingChatMember | null;
+
   // ── Actions ───────────────────────────────────────────────────────────────
   setPage: (page: Page) => void;
   toggleSidebar: () => void;
@@ -68,6 +78,7 @@ interface AppState {
   toggleRecording: () => void;
   startMeeting: () => void;
   endMeeting: () => void;
+  setPendingChatMember: (member: PendingChatMember | null) => void;
 
   // ── Auth Actions ──────────────────────────────────────────────────────────
   login: (email: string, password: string) => Promise<void>;
@@ -119,10 +130,12 @@ export const useAppStore = create<AppState>((set) => ({
   isAISummaryGenerating: false,
   notifications: [],
   unreadCount: 0,
+  pendingChatMember: null,
 
   // ── Navigation ────────────────────────────────────────────────────────────
   setPage: (page) => set({ currentPage: page }),
   toggleSidebar: () => set((s) => ({ isSidebarOpen: !s.isSidebarOpen })),
+  setPendingChatMember: (member) => set({ pendingChatMember: member }),
 
   // ── Meeting Controls ──────────────────────────────────────────────────────
   toggleMute: () => set((s) => ({ isMuted: !s.isMuted })),

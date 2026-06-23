@@ -134,6 +134,14 @@ export const ANALYTICS_DATA = {
     { month: 'Mar', meetings: 195, aiSummaries: 162, actionItems: 445 },
     { month: 'Apr', meetings: 221, aiSummaries: 198, actionItems: 521 },
   ],
+  quarterlyTrend: [
+    { month: 'Q1 2025', meetings: 480, aiSummaries: 360, actionItems: 980 },
+    { month: 'Q2 2025', meetings: 612, aiSummaries: 498, actionItems: 1240 },
+    { month: 'Q3 2025', meetings: 734, aiSummaries: 589, actionItems: 1512 },
+    { month: 'Q4 2025', meetings: 891, aiSummaries: 712, actionItems: 1873 },
+    { month: 'Q1 2026', meetings: 761, aiSummaries: 643, actionItems: 1644 },
+    { month: 'Q2 2026', meetings: 826, aiSummaries: 711, actionItems: 1790 },
+  ],
   productivity: [
     { name: 'Follow-up Time Saved', value: 52, color: '#6366f1' },
     { name: 'Task Completion Rate', value: 78, color: '#10b981' },
