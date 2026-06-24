@@ -32,12 +32,34 @@ export default function MeetingRoomPage() {
   const screenVideoRef = useRef<HTMLVideoElement | null>(null);
 
   const streamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const [hasWebcamStream, setHasWebcamStream] = useState(false);
+  const [hasMicStream, setHasMicStream] = useState(false);
+  const [micLevel, setMicLevel] = useState(0);
 
   const screenStreamRef = useRef<MediaStream | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
+
+  const [showChat, setShowChat] = useState(false);
+  const [showParticipants, setShowParticipants] = useState(false);
+  const [showReactions, setShowReactions] = useState(false);
+  const [showAIPanel, setShowAIPanel] = useState(false);
+  const [chatMsg, setChatMsg] = useState('');
+  const [messages, setMessages] = useState(CHAT_MESSAGES.slice(0, 5));
+  const [elapsed, setElapsed] = useState(0);
+  const [handRaised, setHandRaised] = useState(false);
+  const [activeReaction, setActiveReaction] = useState<string | null>(null);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [audioEnabled, setAudioEnabled] = useState(true);
+  const [notification, setNotification] = useState<string | null>(null);
+
+  const showNotification = (msg: string) => {
+    setNotification(msg);
+    setTimeout(() => setNotification(null), 3000);
+  };
 
   // Bind local stream
   useEffect(() => {
@@ -68,27 +90,62 @@ export default function MeetingRoomPage() {
           audio: true
         });
       } catch (err) {
-        console.warn("Failed to get both video and audio, trying video only...", err);
+        console.warn("Failed to get both video and audio together. Trying separately...", err);
+        let videoStream: MediaStream | null = null;
+        let audioStream: MediaStream | null = null;
+
         try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: true
-          });
+          videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
         } catch (videoErr) {
-          console.warn("Failed to get video, trying audio only...", videoErr);
-          try {
-            stream = await navigator.mediaDevices.getUserMedia({
-              audio: true
-            });
-          } catch (audioErr) {
-            console.error("All media capture attempts failed:", audioErr);
-          }
+          console.warn("Failed to get video stream:", videoErr);
+        }
+
+        try {
+          audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        } catch (audioErr) {
+          console.warn("Failed to get audio stream:", audioErr);
+        }
+
+        if (videoStream || audioStream) {
+          const tracks: MediaStreamTrack[] = [];
+          if (videoStream) tracks.push(...videoStream.getVideoTracks());
+          if (audioStream) tracks.push(...audioStream.getAudioTracks());
+          stream = new MediaStream(tracks);
         }
       }
 
       if (stream && active) {
+        // If the hardware stream is missing an audio track (e.g. permission denied or unplugged),
+        // we add a silent mock audio track so that recording and other features don't fail.
+        if (stream.getAudioTracks().length === 0) {
+          try {
+            const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+            if (AudioContextClass) {
+              const audioCtx = new AudioContextClass();
+              audioContextRef.current = audioCtx;
+              audioCtx.resume().catch(() => {});
+              const dest = audioCtx.createMediaStreamDestination();
+              const osc = audioCtx.createOscillator();
+              const gain = audioCtx.createGain();
+              gain.gain.value = 0.001; // near silent
+              osc.connect(gain);
+              gain.connect(dest);
+              osc.start();
+              const mockAudioTrack = dest.stream.getAudioTracks()[0];
+              if (mockAudioTrack) {
+                stream.addTrack(mockAudioTrack);
+                console.log("Successfully generated and added a fallback silent audio track to local stream.");
+              }
+            }
+          } catch (e) {
+            console.warn("Failed to generate fallback silent audio track in initMedia:", e);
+          }
+        }
+
         streamRef.current = stream;
         setLocalStream(stream);
         setHasWebcamStream(stream.getVideoTracks().length > 0);
+        setHasMicStream(stream.getAudioTracks().length > 0);
 
         stream.getAudioTracks().forEach(t => {
           t.enabled = !isMuted;
@@ -108,6 +165,8 @@ export default function MeetingRoomPage() {
         try {
           const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
           const audioCtx = new AudioContextClass();
+          audioContextRef.current = audioCtx;
+          audioCtx.resume().catch(() => {});
           const dest = audioCtx.createMediaStreamDestination();
           const osc = audioCtx.createOscillator();
           const gain = audioCtx.createGain();
@@ -165,6 +224,7 @@ export default function MeetingRoomPage() {
         streamRef.current = fallbackStream;
         setLocalStream(fallbackStream);
         setHasWebcamStream(true);
+        setHasMicStream(audioTrack !== null);
 
         fallbackStream.getAudioTracks().forEach(t => {
           t.enabled = !isMuted;
@@ -198,31 +258,70 @@ export default function MeetingRoomPage() {
 
   useEffect(() => {
     if (streamRef.current) {
+      const activeState = !isMuted && audioEnabled;
       streamRef.current.getAudioTracks().forEach(track => {
-        track.enabled = !isMuted;
+        track.enabled = activeState;
       });
-      showNotification(isMuted ? 'Microphone muted' : 'Microphone unmuted');
+      showNotification(activeState ? 'Microphone active' : 'Microphone muted');
     }
-  }, [isMuted, localStream]);
+  }, [isMuted, audioEnabled, localStream]);
 
-  const [showChat, setShowChat] = useState(false);
-  const [showParticipants, setShowParticipants] = useState(false);
-  const [showReactions, setShowReactions] = useState(false);
-  const [showAIPanel, setShowAIPanel] = useState(false);
-  const [chatMsg, setChatMsg] = useState('');
-  const [messages, setMessages] = useState(CHAT_MESSAGES.slice(0, 5));
-  const [elapsed, setElapsed] = useState(0);
-  const [handRaised, setHandRaised] = useState(false);
-  const [activeReaction, setActiveReaction] = useState<string | null>(null);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [showMoreMenu, setShowMoreMenu] = useState(false);
-  const [audioEnabled, setAudioEnabled] = useState(true);
-  const [notification, setNotification] = useState<string | null>(null);
+  // Analyze local microphone level for dynamic visualizer
+  useEffect(() => {
+    if (!localStream || isMuted || !audioEnabled) {
+      setMicLevel(0);
+      return;
+    }
 
-  const showNotification = (msg: string) => {
-    setNotification(msg);
-    setTimeout(() => setNotification(null), 3000);
-  };
+    const audioTracks = localStream.getAudioTracks();
+    if (audioTracks.length === 0) {
+      setMicLevel(0);
+      return;
+    }
+
+    let audioCtx: AudioContext | null = null;
+    let source: MediaStreamAudioSourceNode | null = null;
+    let analyser: AnalyserNode | null = null;
+    let animationFrameId: number;
+
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      audioCtx = new AudioContextClass();
+      audioCtx.resume().catch(() => {});
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 256;
+      
+      source = audioCtx.createMediaStreamSource(localStream);
+      source.connect(analyser);
+
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      const checkVolume = () => {
+        if (!analyser) return;
+        analyser.getByteFrequencyData(dataArray);
+        
+        let values = 0;
+        for (let i = 0; i < bufferLength; i++) {
+          values += dataArray[i];
+        }
+        const average = values / bufferLength;
+        setMicLevel(Math.min(100, Math.round((average / 128) * 100)));
+        animationFrameId = requestAnimationFrame(checkVolume);
+      };
+
+      checkVolume();
+    } catch (e) {
+      console.warn("Failed to initialize audio analyzer:", e);
+    }
+
+    return () => {
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      if (source) source.disconnect();
+      if (audioCtx && audioCtx.state !== 'closed') audioCtx.close();
+    };
+  }, [localStream, isMuted, audioEnabled]);
+
 
   useEffect(() => {
     let active = true;
@@ -289,20 +388,136 @@ export default function MeetingRoomPage() {
       return;
     }
 
-    const streamToRecord = screenStreamRef.current || streamRef.current;
+    // Automatically unmute microphone when starting a recording
+    if (isMuted) {
+      toggleMute();
+    }
+    if (!audioEnabled) {
+      setAudioEnabled(true);
+    }
+    if (streamRef.current) {
+      streamRef.current.getAudioTracks().forEach(track => {
+        track.enabled = true;
+      });
+    }
+
+    // Resume the fallback AudioContext if it exists and is suspended
+    if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+      audioContextRef.current.resume().catch(err => console.warn("Failed to resume fallback AudioContext:", err));
+    }
+
+    // Combine video (screen or camera) with microphone/system audio tracks
+    let streamToRecord: MediaStream | null = null;
+    if (isScreenSharing && screenStreamRef.current) {
+      const tracks: MediaStreamTrack[] = [];
+      
+      // Screen video track
+      const screenVideoTracks = screenStreamRef.current.getVideoTracks();
+      if (screenVideoTracks.length > 0) {
+        tracks.push(screenVideoTracks[0]);
+      }
+      
+      // Get screen audio and mic audio
+      const screenAudioTracks = screenStreamRef.current.getAudioTracks();
+      const micAudioTracks = streamRef.current ? streamRef.current.getAudioTracks() : [];
+      
+      if (screenAudioTracks.length > 0 && micAudioTracks.length > 0) {
+        // We have both screen audio and microphone audio. Let's mix them!
+        try {
+          const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+          const audioCtx = new AudioContextClass();
+          audioCtx.resume().catch(() => {});
+          
+          const dest = audioCtx.createMediaStreamDestination();
+          
+          const screenSource = audioCtx.createMediaStreamSource(new MediaStream([screenAudioTracks[0]]));
+          const micSource = audioCtx.createMediaStreamSource(new MediaStream([micAudioTracks[0]]));
+          
+          screenSource.connect(dest);
+          micSource.connect(dest);
+          
+          const mixedAudioTrack = dest.stream.getAudioTracks()[0];
+          if (mixedAudioTrack) {
+            tracks.push(mixedAudioTrack);
+            console.log("Successfully mixed screen audio and microphone audio.");
+          }
+        } catch (e) {
+          console.warn("Failed to mix screen and microphone audio:", e);
+          // Fallback to just microphone or screen audio
+          tracks.push(micAudioTracks[0] || screenAudioTracks[0]);
+        }
+      } else if (screenAudioTracks.length > 0) {
+        tracks.push(screenAudioTracks[0]);
+      } else if (micAudioTracks.length > 0) {
+        tracks.push(micAudioTracks[0]);
+      }
+      
+      streamToRecord = new MediaStream(tracks);
+    } else {
+      streamToRecord = streamRef.current;
+    }
+
     if (!streamToRecord) {
       showNotification('No active stream to record');
       if (isRecording) toggleRecording();
       return;
     }
 
+    // Ensure we have at least one audio track to prevent "No mic audio detected" warning
+    if (streamToRecord.getAudioTracks().length === 0) {
+      try {
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioContextClass) {
+          const audioCtx = new AudioContextClass();
+          audioContextRef.current = audioCtx; // Store for future reference
+          audioCtx.resume().catch(() => {});
+          const dest = audioCtx.createMediaStreamDestination();
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          gain.gain.value = 0.001; // near silent
+          osc.connect(gain);
+          gain.connect(dest);
+          osc.start();
+          const mockAudioTrack = dest.stream.getAudioTracks()[0];
+          if (mockAudioTrack) {
+            try {
+              streamToRecord.addTrack(mockAudioTrack);
+            } catch {
+              const combinedTracks = [...streamToRecord.getVideoTracks(), mockAudioTrack];
+              streamToRecord = new MediaStream(combinedTracks);
+            }
+            if (streamRef.current) {
+              try {
+                streamRef.current.addTrack(mockAudioTrack);
+              } catch {}
+            }
+            console.log("Added silent mock audio track to recording stream.");
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to generate fallback audio track during recording:", e);
+      }
+    }
+
     recordedChunksRef.current = [];
     try {
-      const options = { mimeType: 'video/webm; codecs=vp9' };
-      let recorder: MediaRecorder;
-      try {
-        recorder = new MediaRecorder(streamToRecord, options);
-      } catch {
+      let recorder: MediaRecorder | undefined;
+      const optionsList = [
+        { mimeType: 'video/webm; codecs=vp9,opus' },
+        { mimeType: 'video/webm; codecs=vp8,opus' },
+        { mimeType: 'video/webm' }
+      ];
+      
+      for (const opt of optionsList) {
+        try {
+          recorder = new MediaRecorder(streamToRecord, opt);
+          break;
+        } catch (e) {
+          console.warn(`MIME type ${opt.mimeType} not supported:`, e);
+        }
+      }
+      
+      if (!recorder) {
         recorder = new MediaRecorder(streamToRecord);
       }
 
@@ -313,7 +528,7 @@ export default function MeetingRoomPage() {
       };
 
       recorder.onstop = () => {
-        const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+        const blob = new Blob(recordedChunksRef.current, { type: recorder?.mimeType || 'video/webm' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.style.display = 'none';
@@ -329,7 +544,16 @@ export default function MeetingRoomPage() {
 
       mediaRecorderRef.current = recorder;
       recorder.start(1000);
-      showNotification('Recording started');
+      
+      const audioTracks = streamToRecord.getAudioTracks();
+      console.log("Recording stream tracks:", streamToRecord.getTracks().map(t => `${t.kind}: enabled=${t.enabled}, state=${t.readyState}`));
+      if (audioTracks.length === 0) {
+        showNotification('Recording started (No mic audio detected)');
+      } else if (audioTracks.some(t => !t.enabled)) {
+        showNotification('Recording started (Microphone is muted)');
+      } else {
+        showNotification('Recording started');
+      }
     } catch (err) {
       console.error("Failed to start MediaRecorder:", err);
       showNotification('Failed to start recording');
@@ -510,9 +734,29 @@ export default function MeetingRoomPage() {
               )}
               <div className="absolute inset-0 rounded-2xl border-2 border-indigo-500/40 pointer-events-none" />
               <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
-                <span className="text-xs font-semibold text-white">You</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-white">You</span>
+                  {!hasMicStream ? (
+                    <span className="text-[9px] text-red-400 font-bold bg-red-500/10 border border-red-500/20 px-1 rounded flex items-center gap-1">
+                      ⚠️ No Mic
+                    </span>
+                  ) : !isMuted && micLevel > 0 ? (
+                    <div className="flex items-center gap-0.5 h-3">
+                      {[1, 2, 3].map((bar) => {
+                        const scale = Math.max(0.2, (micLevel / 100) * (bar === 2 ? 1 : 0.7));
+                        return (
+                          <div
+                            key={bar}
+                            className="w-0.5 bg-emerald-400 rounded-full transition-all duration-75"
+                            style={{ height: `${scale * 100}%` }}
+                          />
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </div>
                 <div className="flex items-center gap-1">
-                  {isMuted && <MicOff className="w-3 h-3 text-red-400" />}
+                  {!hasMicStream || isMuted ? <MicOff className="w-3 h-3 text-red-400" /> : <Mic className="w-3 h-3 text-emerald-400" />}
                   {isCameraOff && <VideoOff className="w-3 h-3 text-red-400" />}
                 </div>
               </div>
