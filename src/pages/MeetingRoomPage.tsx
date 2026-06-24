@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Mic, MicOff, Video, VideoOff, Monitor, MonitorOff, PhoneOff,
@@ -24,6 +24,187 @@ const avatarColors = [
 
 export default function MeetingRoomPage() {
   const { isMuted, isCameraOff, isScreenSharing, isRecording, toggleMute, toggleCamera, toggleScreenShare, toggleRecording, endMeeting } = useAppStore();
+
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
+
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const screenVideoRef = useRef<HTMLVideoElement | null>(null);
+
+  const streamRef = useRef<MediaStream | null>(null);
+  const [hasWebcamStream, setHasWebcamStream] = useState(false);
+
+  const screenStreamRef = useRef<MediaStream | null>(null);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+
+  // Bind local stream
+  useEffect(() => {
+    if (videoRef.current && localStream) {
+      videoRef.current.srcObject = localStream;
+      videoRef.current.play().catch(err => console.warn("Video play failed:", err));
+    }
+  }, [localStream, isCameraOff, hasWebcamStream]);
+
+  // Bind screen share stream
+  useEffect(() => {
+    if (screenVideoRef.current && screenStream) {
+      screenVideoRef.current.srcObject = screenStream;
+      screenVideoRef.current.play().catch(err => console.warn("Screen share play failed:", err));
+    }
+  }, [screenStream, isScreenSharing]);
+
+  useEffect(() => {
+    let active = true;
+    let fallbackInterval: any = null;
+
+    async function initMedia() {
+      let stream: MediaStream | null = null;
+      try {
+        // Try getting both video and audio first
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true
+        });
+      } catch (err) {
+        console.warn("Failed to get both video and audio, trying video only...", err);
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: true
+          });
+        } catch (videoErr) {
+          console.warn("Failed to get video, trying audio only...", videoErr);
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({
+              audio: true
+            });
+          } catch (audioErr) {
+            console.error("All media capture attempts failed:", audioErr);
+          }
+        }
+      }
+
+      if (stream && active) {
+        streamRef.current = stream;
+        setLocalStream(stream);
+        setHasWebcamStream(stream.getVideoTracks().length > 0);
+
+        stream.getAudioTracks().forEach(t => {
+          t.enabled = !isMuted;
+        });
+        stream.getVideoTracks().forEach(t => {
+          t.enabled = !isCameraOff;
+        });
+      } else if (active) {
+        console.warn("Hardware camera/microphone unavailable or permission denied. Creating simulated fallback stream.");
+        // Fallback: Create dynamic canvas stream to simulate camera output
+        const canvas = document.createElement('canvas');
+        canvas.width = 640;
+        canvas.height = 480;
+        const ctx = canvas.getContext('2d');
+
+        let audioTrack: MediaStreamTrack | null = null;
+        try {
+          const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+          const audioCtx = new AudioContextClass();
+          const dest = audioCtx.createMediaStreamDestination();
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          gain.gain.value = 0.001; // near silent
+          osc.connect(gain);
+          gain.connect(dest);
+          osc.start();
+          audioTrack = dest.stream.getAudioTracks()[0];
+        } catch { }
+
+        let angle = 0;
+        fallbackInterval = setInterval(() => {
+          if (!ctx) return;
+          ctx.fillStyle = '#0f172a';
+          ctx.fillRect(0, 0, 640, 480);
+
+          const pulse = 100 + Math.sin(angle) * 15;
+          ctx.strokeStyle = 'rgba(99, 102, 241, 0.4)';
+          ctx.lineWidth = 6;
+          ctx.beginPath();
+          ctx.arc(320, 240, pulse, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.strokeStyle = 'rgba(139, 92, 246, 0.2)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(320, 240, pulse + 30, 0, Math.PI * 2);
+          ctx.stroke();
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 56px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('AJ', 320, 230);
+
+          ctx.fillStyle = '#818cf8';
+          ctx.font = 'bold 16px sans-serif';
+          ctx.fillText('Simulated Meeting Feed', 320, 310);
+
+          ctx.fillStyle = '#64748b';
+          ctx.font = '12px sans-serif';
+          ctx.fillText('Hardware camera permission denied or unavailable', 320, 340);
+
+          angle += 0.08;
+        }, 1000 / 30);
+
+        const canvasStream = (canvas as any).captureStream ? (canvas as any).captureStream(30) : null;
+        const videoTrack = canvasStream ? canvasStream.getVideoTracks()[0] : null;
+
+        const tracks = [];
+        if (videoTrack) tracks.push(videoTrack);
+        if (audioTrack) tracks.push(audioTrack);
+
+        const fallbackStream = new MediaStream(tracks);
+        streamRef.current = fallbackStream;
+        setLocalStream(fallbackStream);
+        setHasWebcamStream(true);
+
+        fallbackStream.getAudioTracks().forEach(t => {
+          t.enabled = !isMuted;
+        });
+        fallbackStream.getVideoTracks().forEach(t => {
+          t.enabled = !isCameraOff;
+        });
+      }
+    }
+
+    initMedia();
+
+    return () => {
+      active = false;
+      if (fallbackInterval) clearInterval(fallbackInterval);
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+      setLocalStream(null);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (streamRef.current) {
+      streamRef.current.getVideoTracks().forEach(track => {
+        track.enabled = !isCameraOff;
+      });
+    }
+  }, [isCameraOff, localStream]);
+
+  useEffect(() => {
+    if (streamRef.current) {
+      streamRef.current.getAudioTracks().forEach(track => {
+        track.enabled = !isMuted;
+      });
+      showNotification(isMuted ? 'Microphone muted' : 'Microphone unmuted');
+    }
+  }, [isMuted, localStream]);
+
   const [showChat, setShowChat] = useState(false);
   const [showParticipants, setShowParticipants] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
@@ -42,6 +223,119 @@ export default function MeetingRoomPage() {
     setNotification(msg);
     setTimeout(() => setNotification(null), 3000);
   };
+
+  useEffect(() => {
+    let active = true;
+
+    async function startScreenShare() {
+      if (!isScreenSharing) {
+        if (screenStreamRef.current) {
+          screenStreamRef.current.getTracks().forEach(track => track.stop());
+          screenStreamRef.current = null;
+        }
+        setScreenStream(null);
+        return;
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+          audio: true
+        });
+
+        if (!active) {
+          stream.getTracks().forEach(track => track.stop());
+          return;
+        }
+
+        screenStreamRef.current = stream;
+        setScreenStream(stream);
+
+        // Auto-stop if user clicks native "Stop Sharing" button
+        stream.getVideoTracks()[0].onended = () => {
+          if (isScreenSharing) {
+            toggleScreenShare();
+          }
+        };
+
+        showNotification('Screen sharing started');
+      } catch (err) {
+        console.error("Error sharing screen:", err);
+        setScreenStream(null);
+        if (isScreenSharing) {
+          toggleScreenShare();
+        }
+      }
+    }
+
+    startScreenShare();
+
+    return () => {
+      active = false;
+      if (screenStreamRef.current) {
+        screenStreamRef.current.getTracks().forEach(track => track.stop());
+        screenStreamRef.current = null;
+      }
+      setScreenStream(null);
+    };
+  }, [isScreenSharing]);
+
+  useEffect(() => {
+    if (!isRecording) {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop();
+        showNotification('Recording saved successfully');
+      }
+      return;
+    }
+
+    const streamToRecord = screenStreamRef.current || streamRef.current;
+    if (!streamToRecord) {
+      showNotification('No active stream to record');
+      if (isRecording) toggleRecording();
+      return;
+    }
+
+    recordedChunksRef.current = [];
+    try {
+      const options = { mimeType: 'video/webm; codecs=vp9' };
+      let recorder: MediaRecorder;
+      try {
+        recorder = new MediaRecorder(streamToRecord, options);
+      } catch {
+        recorder = new MediaRecorder(streamToRecord);
+      }
+
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          recordedChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `intellmeet-recording-${Date.now()}.webm`;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+        }, 100);
+      };
+
+      mediaRecorderRef.current = recorder;
+      recorder.start(1000);
+      showNotification('Recording started');
+    } catch (err) {
+      console.error("Failed to start MediaRecorder:", err);
+      showNotification('Failed to start recording');
+      if (isRecording) toggleRecording();
+    }
+  }, [isRecording]);
 
   const toggleFullScreen = () => {
     if (!document.fullscreenElement) {
@@ -135,101 +429,123 @@ export default function MeetingRoomPage() {
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Video Grid */}
-        <div className="flex-1 p-4 grid grid-cols-3 gap-3 overflow-hidden relative">
-          {participants.map((p, i) => (
-            <motion.div
-              key={p.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.08 }}
-              className={`relative rounded-2xl overflow-hidden border border-white/5 group ${i === 0 ? 'col-span-2 row-span-2' : ''}`}
-              style={{ background: 'linear-gradient(135deg, #0d1117 0%, #1a1f2e 100%)', minHeight: i === 0 ? '300px' : '140px' }}
-            >
-              {/* Video placeholder - gradient avatar */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${avatarColors[i % avatarColors.length]} flex items-center justify-center text-xl font-black shadow-lg ${i === 0 ? 'w-24 h-24 text-2xl' : ''}`}>
-                  {p.avatar}
-                </div>
-              </div>
-
-              {/* Animated border for speaker */}
-              {i === 0 && (
-                <div className="absolute inset-0 rounded-2xl border-2 border-emerald-500/60 pointer-events-none" />
-              )}
-
-              {/* Participant info */}
-              <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-white">{p.name.split(' ')[0]}{i === 0 ? ' (Host)' : ''}</span>
-                    {i === 0 && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 status-live" />}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {Math.random() > 0.5 && <MicOff className="w-3 h-3 text-red-400" />}
-                  </div>
-                </div>
-              </div>
-
-              {/* Hover overlay */}
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all rounded-2xl pointer-events-none" />
-            </motion.div>
-          ))}
-
-          {/* My video tile */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.5 }}
-            className="relative rounded-2xl overflow-hidden border border-indigo-500/30"
-            style={{ background: 'linear-gradient(135deg, #1a1520 0%, #2d1b4e 100%)', minHeight: '140px' }}
-          >
-            {isCameraOff ? (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-lg font-black">AJ</div>
-              </div>
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-lg font-black">AJ</div>
-              </div>
-            )}
-            <div className="absolute inset-0 rounded-2xl border-2 border-indigo-500/40 pointer-events-none" />
-            <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
-              <span className="text-xs font-semibold text-white">You</span>
-              <div className="flex items-center gap-1">
-                {isMuted && <MicOff className="w-3 h-3 text-red-400" />}
-                {isCameraOff && <VideoOff className="w-3 h-3 text-red-400" />}
+        {/* Video & Screen Share Container */}
+        <div className="flex-1 flex flex-col lg:flex-row p-4 gap-3 overflow-hidden relative">
+          {isScreenSharing && (
+            <div className="flex-[2] relative rounded-2xl overflow-hidden border border-indigo-500/30 bg-[#0c0f17] flex items-center justify-center min-h-[300px]">
+              <video
+                ref={screenVideoRef}
+                autoPlay
+                playsInline
+                className="w-full h-full object-contain"
+              />
+              <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-xs text-indigo-300 font-semibold flex items-center gap-2">
+                <Monitor className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
+                You are sharing your screen
               </div>
             </div>
-          </motion.div>
+          )}
 
-          {/* Floating Reaction */}
-          <AnimatePresence>
-            {activeReaction && (
+          {/* Video Grid */}
+          <div className={`flex-1 grid gap-3 overflow-y-auto ${isScreenSharing ? 'grid-cols-2 lg:grid-cols-1 lg:max-w-xs' : 'grid-cols-3'}`}>
+            {participants.map((p, i) => (
               <motion.div
-                initial={{ opacity: 0, scale: 0.5, y: 0 }}
-                animate={{ opacity: 1, scale: 1.5, y: -60 }}
-                exit={{ opacity: 0, scale: 0.5 }}
-                className="absolute bottom-24 left-1/2 -translate-x-1/2 text-4xl pointer-events-none z-50"
+                key={p.id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: i * 0.08 }}
+                className={`relative rounded-2xl overflow-hidden border border-white/5 group ${i === 0 ? 'col-span-2 row-span-2' : ''}`}
+                style={{ background: 'linear-gradient(135deg, #0d1117 0%, #1a1f2e 100%)', minHeight: i === 0 ? '300px' : '140px' }}
               >
-                {activeReaction}
-              </motion.div>
-            )}
-          </AnimatePresence>
+                {/* Video placeholder - gradient avatar */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${avatarColors[i % avatarColors.length]} flex items-center justify-center text-xl font-black shadow-lg ${i === 0 ? 'w-24 h-24 text-2xl' : ''}`}>
+                    {p.avatar}
+                  </div>
+                </div>
 
-          {/* Hand Raised */}
-          <AnimatePresence>
-            {handRaised && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-xs text-amber-400"
-              >
-                ✋ You raised your hand
+                {/* Animated border for speaker */}
+                {i === 0 && (
+                  <div className="absolute inset-0 rounded-2xl border-2 border-emerald-500/60 pointer-events-none" />
+                )}
+
+                {/* Participant info */}
+                <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-white">{p.name.split(' ')[0]}{i === 0 ? ' (Host)' : ''}</span>
+                      {i === 0 && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 status-live" />}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {Math.random() > 0.5 && <MicOff className="w-3 h-3 text-red-400" />}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Hover overlay */}
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all rounded-2xl pointer-events-none" />
               </motion.div>
-            )}
-          </AnimatePresence>
+            ))}
+
+            {/* My video tile */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.5 }}
+              className="relative rounded-2xl overflow-hidden border border-indigo-500/30"
+              style={{ background: 'linear-gradient(135deg, #1a1520 0%, #2d1b4e 100%)', minHeight: '140px' }}
+            >
+              {isCameraOff || !hasWebcamStream ? (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-lg font-black">AJ</div>
+                </div>
+              ) : (
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="absolute inset-0 w-full h-full object-cover scale-x-[-1]"
+                />
+              )}
+              <div className="absolute inset-0 rounded-2xl border-2 border-indigo-500/40 pointer-events-none" />
+              <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between">
+                <span className="text-xs font-semibold text-white">You</span>
+                <div className="flex items-center gap-1">
+                  {isMuted && <MicOff className="w-3 h-3 text-red-400" />}
+                  {isCameraOff && <VideoOff className="w-3 h-3 text-red-400" />}
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Floating Reaction */}
+            <AnimatePresence>
+              {activeReaction && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.5, y: 0 }}
+                  animate={{ opacity: 1, scale: 1.5, y: -60 }}
+                  exit={{ opacity: 0, scale: 0.5 }}
+                  className="absolute bottom-24 left-1/2 -translate-x-1/2 text-4xl pointer-events-none z-50"
+                >
+                  {activeReaction}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Hand Raised */}
+            <AnimatePresence>
+              {handRaised && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 20 }}
+                  className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-xs text-amber-400"
+                >
+                  ✋ You raised your hand
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
 
         {/* Side Panels */}
@@ -252,8 +568,8 @@ export default function MeetingRoomPage() {
                     key={tab.key}
                     onClick={tab.action}
                     className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-medium transition-all ${(tab.key === 'chat' && showChat) || (tab.key === 'participants' && showParticipants) || (tab.key === 'ai' && showAIPanel)
-                        ? 'text-indigo-400 border-b-2 border-indigo-500'
-                        : 'text-gray-500 hover:text-gray-300'
+                      ? 'text-indigo-400 border-b-2 border-indigo-500'
+                      : 'text-gray-500 hover:text-gray-300'
                       }`}
                   >
                     <tab.icon className="w-3.5 h-3.5" />

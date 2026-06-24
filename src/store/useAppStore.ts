@@ -76,7 +76,7 @@ interface AppState {
   toggleCamera: () => void;
   toggleScreenShare: () => void;
   toggleRecording: () => void;
-  startMeeting: () => void;
+  startMeeting: (options?: { isMuted?: boolean; isCameraOff?: boolean }) => void;
   endMeeting: () => void;
   setPendingChatMember: (member: PendingChatMember | null) => void;
 
@@ -142,7 +142,13 @@ export const useAppStore = create<AppState>((set) => ({
   toggleCamera: () => set((s) => ({ isCameraOff: !s.isCameraOff })),
   toggleScreenShare: () => set((s) => ({ isScreenSharing: !s.isScreenSharing })),
   toggleRecording: () => set((s) => ({ isRecording: !s.isRecording })),
-  startMeeting: () => set({ isMeetingActive: true, currentPage: 'meeting-room' }),
+  startMeeting: (options) =>
+    set((s) => ({
+      isMeetingActive: true,
+      currentPage: 'meeting-room',
+      isMuted: options?.isMuted !== undefined ? options.isMuted : false,
+      isCameraOff: options?.isCameraOff !== undefined ? options.isCameraOff : false,
+    })),
   endMeeting: () => set({ isMeetingActive: false, currentPage: 'ai-summary' }),
 
   // ── Auth Actions ──────────────────────────────────────────────────────────
