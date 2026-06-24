@@ -31,22 +31,35 @@ const techStack = [
 export default function LandingPage() {
   const { setPage } = useAppStore();
 
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-mesh text-white overflow-x-hidden">
       {/* Navbar */}
       <nav className="fixed top-0 left-0 right-0 z-50 glass-dark border-b border-white/5">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center glow-indigo">
-              <Video className="w-5 h-5 text-white" />
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center glow-indigo hover:scale-105 transition-transform duration-300">
+              <Video className="w-6 h-6 text-white" />
             </div>
-            <span className="font-bold text-xl tracking-tight">
+            <span className="font-black text-2xl lg:text-3xl tracking-tight">
               <span className="gradient-text">Intell</span>Meet
             </span>
           </motion.div>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="hidden md:flex items-center gap-8">
             {['Features', 'Analytics', 'Security', 'Pricing'].map((item) => (
-              <a key={item} href="#" className="text-sm text-gray-400 hover:text-white transition-colors">{item}</a>
+              <button
+                key={item}
+                onClick={() => scrollToSection(item.toLowerCase())}
+                className="text-sm text-gray-400 hover:text-white transition-colors cursor-pointer"
+              >
+                {item}
+              </button>
             ))}
           </motion.div>
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex items-center gap-3">
@@ -211,7 +224,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 px-6">
+      <section id="features" className="py-20 px-6">
         <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -250,6 +263,93 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Analytics Section */}
+      <section id="analytics" className="py-20 px-6 bg-gradient-to-b from-transparent via-indigo-950/10 to-transparent">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+            >
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass border border-indigo-500/30 text-xs text-indigo-300 mb-6">
+                <BarChart3 className="w-3.5 h-3.5" />
+                Deep Workspace Insights
+              </div>
+              <h2 className="text-4xl font-black mb-6">
+                Track meeting productivity <br />
+                <span className="gradient-text">with precise data</span>
+              </h2>
+              <p className="text-gray-400 mb-6 leading-relaxed">
+                Get custom metrics for engagement scores, speak time distribution, follow-up execution speed, and overall team sentiment. Improve organizational focus with data-driven decision points.
+              </p>
+              <ul className="space-y-3.5 text-sm text-gray-300">
+                <li className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+                  Auto-calculate meeting effectiveness scores
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+                  Averages of time spent in collaboration per team
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
+                  Detailed CSV exports for audit logs and executive reviews
+                </li>
+              </ul>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="glass rounded-2xl border border-white/10 p-6 relative overflow-hidden"
+            >
+              {/* Mock Analytics Chart interface */}
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h4 className="text-sm font-bold text-white">Engagement & Efficiency</h4>
+                  <p className="text-xs text-gray-500">Weekly workspace progress</p>
+                </div>
+                <span className="text-xs px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 font-semibold">+12.4%</span>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <div className="flex justify-between text-xs text-gray-400 mb-1">
+                    <span>Meeting Focus Score</span>
+                    <span className="text-white font-mono">88%</span>
+                  </div>
+                  <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-indigo-500 to-violet-600 rounded-full" style={{ width: '88%' }} />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between text-xs text-gray-400 mb-1">
+                    <span>Action Item Completion Rate</span>
+                    <span className="text-white font-mono">92%</span>
+                  </div>
+                  <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-violet-500 to-purple-600 rounded-full" style={{ width: '92%' }} />
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between text-xs text-gray-400 mb-1">
+                    <span>AI Summary Accuracy Index</span>
+                    <span className="text-white font-mono">96%</span>
+                  </div>
+                  <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full" style={{ width: '96%' }} />
+                  </div>
+                </div>
+              </div>
+              <div className="mt-6 pt-4 border-t border-white/5 flex justify-between items-center text-xs text-gray-500">
+                <span>Last updated: just now</span>
+                <span className="text-indigo-400 cursor-default">View live insights</span>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
       {/* Tech Stack */}
       <section className="py-16 px-6">
         <div className="max-w-6xl mx-auto text-center">
@@ -267,6 +367,60 @@ export default function LandingPage() {
                 {tech}
               </motion.span>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Security Section */}
+      <section id="security" className="py-20 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="lg:order-2"
+            >
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass border border-indigo-500/30 text-xs text-indigo-300 mb-6">
+                <Shield className="w-3.5 h-3.5" />
+                Enterprise Compliance
+              </div>
+              <h2 className="text-4xl font-black mb-6">
+                Security you can trust <br />
+                <span className="gradient-text">for sensitive data</span>
+              </h2>
+              <p className="text-gray-400 mb-6 leading-relaxed">
+                Security is built into the core of IntellMeet. From encrypted storage to enterprise permissions, your meetings and AI summaries are safe with us. We follow strict OWASP compliance rules to ensure production-grade security.
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 rounded-xl glass border border-white/5">
+                  <h4 className="text-sm font-bold text-white mb-1">AES-256 Encryption</h4>
+                  <p className="text-xs text-gray-500">End-to-end data security at rest and in transit</p>
+                </div>
+                <div className="p-4 rounded-xl glass border border-white/5">
+                  <h4 className="text-sm font-bold text-white mb-1">SSO & SAML</h4>
+                  <p className="text-xs text-gray-500">Easy configuration with Okta, Google Workspace, Azure AD</p>
+                </div>
+              </div>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              className="lg:order-1 glass rounded-2xl border border-white/10 p-8 flex flex-col justify-center items-center text-center relative overflow-hidden"
+            >
+              <div className="w-20 h-20 rounded-full bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center mb-4 text-indigo-400 glow-indigo animate-pulse">
+                <Shield className="w-10 h-10" />
+              </div>
+              <h3 className="text-lg font-bold text-white mb-2">SOC 2 Type II Certified</h3>
+              <p className="text-xs text-gray-400 max-w-xs mb-4">
+                Compliant with GDPR, HIPAA, and industry-standard security frameworks for complete data peace of mind.
+              </p>
+              <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                All services fully operational
+              </div>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -306,6 +460,110 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Pricing Section */}
+      <section id="pricing" className="py-20 px-6 bg-gradient-to-b from-transparent via-indigo-950/10 to-transparent">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-4xl md:text-5xl font-black mb-4">
+              Simple, transparent <br />
+              <span className="gradient-text">pricing options</span>
+            </h2>
+            <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+              Choose the plan that fits your organization — scale effortlessly as your team expands
+            </p>
+          </motion.div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Free Plan */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              whileHover={{ y: -6 }}
+              className="glass rounded-2xl p-8 border border-white/5 flex flex-col justify-between"
+            >
+              <div>
+                <h3 className="text-xl font-bold text-white mb-2">Starter</h3>
+                <p className="text-gray-400 text-xs mb-6">Perfect for small teams and developers</p>
+                <div className="mb-6">
+                  <span className="text-4xl font-black text-white">$0</span>
+                  <span className="text-gray-500 text-xs ml-2">/ month</span>
+                </div>
+                <ul className="space-y-3 text-xs text-gray-300 mb-8">
+                  <li className="flex items-center gap-2">✔ Up to 5 participants per meeting</li>
+                  <li className="flex items-center gap-2">✔ Real-time HD Video & Audio</li>
+                  <li className="flex items-center gap-2">✔ Basic AI Summary & Action Items</li>
+                  <li className="flex items-center gap-2">✔ Public Kanban Board (1 board)</li>
+                </ul>
+              </div>
+              <button onClick={() => setPage('register')} className="w-full py-3 rounded-xl border border-white/10 text-xs font-semibold text-white hover:bg-white/5 transition-all cursor-pointer">
+                Get Started Free
+              </button>
+            </motion.div>
+
+            {/* Pro Plan */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              whileHover={{ y: -6 }}
+              className="glass rounded-2xl p-8 border-2 border-indigo-500 relative flex flex-col justify-between overflow-hidden"
+            >
+              <div className="absolute top-4 right-4 px-2.5 py-1 rounded-full bg-indigo-500 text-[10px] font-bold text-white uppercase tracking-wider">Most Popular</div>
+              <div>
+                <h3 className="text-xl font-bold text-indigo-300 mb-2">Professional</h3>
+                <p className="text-gray-400 text-xs mb-6">For expanding teams needing advanced tools</p>
+                <div className="mb-6">
+                  <span className="text-4xl font-black text-white">$19</span>
+                  <span className="text-gray-500 text-xs ml-2">/ user / mo</span>
+                </div>
+                <ul className="space-y-3 text-xs text-gray-300 mb-8">
+                  <li className="flex items-center gap-2 text-indigo-200">✔ Up to 50 participants per meeting</li>
+                  <li className="flex items-center gap-2 text-indigo-200">✔ Full AI transcribing & editing</li>
+                  <li className="flex items-center gap-2 text-indigo-200">✔ Unlimited Kanban Boards</li>
+                  <li className="flex items-center gap-2 text-indigo-200">✔ Advanced Team Analytics</li>
+                  <li className="flex items-center gap-2 text-indigo-200">✔ Priority support</li>
+                </ul>
+              </div>
+              <button onClick={() => setPage('register')} className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-xs font-semibold text-white transition-all glow-indigo cursor-pointer">
+                Upgrade to Pro
+              </button>
+            </motion.div>
+
+            {/* Enterprise Plan */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              whileHover={{ y: -6 }}
+              className="glass rounded-2xl p-8 border border-white/5 flex flex-col justify-between"
+            >
+              <div>
+                <h3 className="text-xl font-bold text-white mb-2">Enterprise</h3>
+                <p className="text-gray-400 text-xs mb-6">Customized security, controls & scalability</p>
+                <div className="mb-6">
+                  <span className="text-4xl font-black text-white">Custom</span>
+                </div>
+                <ul className="space-y-3 text-xs text-gray-300 mb-8">
+                  <li className="flex items-center gap-2">✔ Unlimited meeting participants</li>
+                  <li className="flex items-center gap-2">✔ Dedicated AI models & cloud storage</li>
+                  <li className="flex items-center gap-2">✔ Single Sign-On (SSO / SAML)</li>
+                  <li className="flex items-center gap-2">✔ Custom API access & integrations</li>
+                  <li className="flex items-center gap-2">✔ 24/7 Enterprise SLA Support</li>
+                </ul>
+              </div>
+              <button onClick={() => setPage('register')} className="w-full py-3 rounded-xl border border-white/10 text-xs font-semibold text-white hover:bg-white/5 transition-all cursor-pointer">
+                Contact Sales
+              </button>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="py-24 px-6">
         <div className="max-w-4xl mx-auto text-center">
@@ -325,14 +583,14 @@ export default function LandingPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center relative z-10">
               <button
                 onClick={() => setPage('register')}
-                className="group flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 font-semibold transition-all glow-indigo hover:scale-105"
+                className="group flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 font-semibold transition-all glow-indigo hover:scale-105 cursor-pointer"
               >
                 Start Building Today
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </button>
               <button
                 onClick={() => setPage('dashboard')}
-                className="px-8 py-4 rounded-xl glass border border-white/10 hover:border-white/20 font-semibold transition-all hover:scale-105"
+                className="px-8 py-4 rounded-xl glass border border-white/10 hover:border-white/20 font-semibold transition-all hover:scale-105 cursor-pointer"
               >
                 Explore Dashboard →
               </button>
@@ -344,11 +602,11 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-white/5 py-8 px-6">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
-              <Video className="w-4 h-4 text-white" />
+          <div className="flex items-center gap-3.5">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center glow-indigo">
+              <Video className="w-5 h-5 text-white" />
             </div>
-            <span className="font-bold text-sm"><span className="gradient-text">Intell</span>Meet</span>
+            <span className="font-black text-lg"><span className="gradient-text">Intell</span>Meet</span>
           </div>
           <p className="text-xs text-gray-600">© 2026 Zidio Development. Production-Grade MERN Platform · Version 2.0 Industry Edition</p>
           <div className="flex items-center gap-4 text-xs text-gray-600">

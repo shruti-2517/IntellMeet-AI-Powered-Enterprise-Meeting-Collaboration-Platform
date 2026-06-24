@@ -33,6 +33,27 @@ export default function MeetingRoomPage() {
   const [elapsed, setElapsed] = useState(0);
   const [handRaised, setHandRaised] = useState(false);
   const [activeReaction, setActiveReaction] = useState<string | null>(null);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [audioEnabled, setAudioEnabled] = useState(true);
+  const [notification, setNotification] = useState<string | null>(null);
+
+  const showNotification = (msg: string) => {
+    setNotification(msg);
+    setTimeout(() => setNotification(null), 3000);
+  };
+
+  const toggleFullScreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => { });
+      showNotification('Fullscreen mode enabled');
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => { });
+        showNotification('Fullscreen mode disabled');
+      }
+    }
+  };
   const [aiTranscript] = useState<string[]>([
     '...discussing the sprint velocity and action items for this cycle.',
     'Key point: Video recording feature deployed successfully.',
@@ -92,13 +113,21 @@ export default function MeetingRoomPage() {
           )}
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gray-400 flex items-center gap-1.5">
+          <span className="text-xs text-gray-400 flex items-center gap-1.5 mr-2">
             <Users className="w-3.5 h-3.5" /> {participants.length} participants
           </span>
-          <button className="p-2 rounded-lg hover:bg-white/5 text-gray-400 transition-all">
+          <button
+            onClick={() => setShowSettingsModal(true)}
+            className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-all cursor-pointer"
+            title="Settings"
+          >
             <Settings className="w-4 h-4" />
           </button>
-          <button className="p-2 rounded-lg hover:bg-white/5 text-gray-400 transition-all">
+          <button
+            onClick={toggleFullScreen}
+            className="p-2 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-all cursor-pointer"
+            title="Toggle Fullscreen"
+          >
             <Maximize className="w-4 h-4" />
           </button>
         </div>
@@ -222,11 +251,10 @@ export default function MeetingRoomPage() {
                   <button
                     key={tab.key}
                     onClick={tab.action}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-medium transition-all ${
-                      (tab.key === 'chat' && showChat) || (tab.key === 'participants' && showParticipants) || (tab.key === 'ai' && showAIPanel)
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-medium transition-all ${(tab.key === 'chat' && showChat) || (tab.key === 'participants' && showParticipants) || (tab.key === 'ai' && showAIPanel)
                         ? 'text-indigo-400 border-b-2 border-indigo-500'
                         : 'text-gray-500 hover:text-gray-300'
-                    }`}
+                      }`}
                   >
                     <tab.icon className="w-3.5 h-3.5" />
                     {tab.label}
@@ -312,7 +340,7 @@ export default function MeetingRoomPage() {
                   <div className="p-3 border-b border-white/5">
                     <div className="flex items-center gap-2 mb-1">
                       <div className="flex gap-0.5">
-                        {[1,2,3,4,5].map(b => (
+                        {[1, 2, 3, 4, 5].map(b => (
                           <div key={b} className="w-1 bg-indigo-400 rounded-full ai-wave-bar" style={{ height: '12px' }} />
                         ))}
                       </div>
@@ -414,7 +442,7 @@ export default function MeetingRoomPage() {
                   className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 flex gap-2 glass rounded-xl p-2 border border-white/10"
                 >
                   {reactions.map(r => (
-                    <button key={r} onClick={() => triggerReaction(r)} className="text-xl hover:scale-125 transition-transform">
+                    <button key={r} onClick={() => triggerReaction(r)} className="text-xl hover:scale-125 transition-transform cursor-pointer">
                       {r}
                     </button>
                   ))}
@@ -422,8 +450,14 @@ export default function MeetingRoomPage() {
               )}
             </AnimatePresence>
           </div>
-          <button className="flex flex-col items-center gap-1 p-3 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 transition-all">
-            <Volume2 className="w-5 h-5" />
+          <button
+            onClick={() => {
+              setAudioEnabled(!audioEnabled);
+              showNotification(audioEnabled ? 'Workspace audio muted' : 'Workspace audio unmuted');
+            }}
+            className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-all cursor-pointer ${!audioEnabled ? 'bg-red-500/20 border border-red-500/30 text-red-400' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
+          >
+            {audioEnabled ? <Volume2 className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
             <span className="text-[10px]">Audio</span>
           </button>
         </div>
@@ -451,10 +485,40 @@ export default function MeetingRoomPage() {
             <Brain className="w-5 h-5" />
             <span className="text-[10px]">AI Live</span>
           </button>
-          <button className="flex flex-col items-center gap-1 p-3 rounded-xl bg-white/5 hover:bg-white/10 text-gray-300 transition-all">
-            <MoreHorizontal className="w-5 h-5" />
-            <span className="text-[10px]">More</span>
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setShowMoreMenu(!showMoreMenu)}
+              className={`flex flex-col items-center gap-1 p-3 rounded-xl transition-all cursor-pointer ${showMoreMenu ? 'bg-indigo-500/20 border border-indigo-500/30 text-indigo-400' : 'bg-white/5 hover:bg-white/10 text-gray-300'}`}
+            >
+              <MoreHorizontal className="w-5 h-5" />
+              <span className="text-[10px]">More</span>
+            </button>
+            <AnimatePresence>
+              {showMoreMenu && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  className="absolute bottom-full right-0 mb-2 w-48 glass rounded-xl p-2 border border-white/10 flex flex-col gap-1 z-50"
+                >
+                  {[
+                    { label: 'Change Layout', action: () => showNotification('Spotlight mode layout selected') },
+                    { label: 'Blur Background', action: () => showNotification('Virtual background blur applied') },
+                    { label: 'Troubleshoot', action: () => setShowSettingsModal(true) },
+                    { label: 'Meeting Info', action: () => showNotification('Meeting link copied to clipboard!') },
+                  ].map(item => (
+                    <button
+                      key={item.label}
+                      onClick={() => { item.action(); setShowMoreMenu(false); }}
+                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-white/5 text-xs text-gray-300 hover:text-white transition-colors cursor-pointer"
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
           {/* End Call */}
           <button
@@ -466,6 +530,109 @@ export default function MeetingRoomPage() {
           </button>
         </div>
       </div>
+
+      {/* Settings Modal */}
+      <AnimatePresence>
+        {showSettingsModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="w-full max-w-md glass-dark rounded-2xl border border-white/10 p-6 shadow-2xl relative overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-violet-500/5 pointer-events-none" />
+              <div className="flex justify-between items-center mb-6 relative z-10">
+                <h3 className="text-lg font-black text-white flex items-center gap-2">
+                  <Settings className="w-5 h-5 text-indigo-400" />
+                  Meeting Settings
+                </h3>
+                <button
+                  onClick={() => setShowSettingsModal(false)}
+                  className="p-1 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-6 relative z-10">
+                {/* Audio Device */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Microphone</label>
+                  <select className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-gray-200 focus:outline-none focus:border-indigo-500/40">
+                    <option className="bg-[#0b0f19]">Default Microphone (System Audio)</option>
+                    <option className="bg-[#0b0f19]">External Mic (High Definition)</option>
+                  </select>
+                </div>
+
+                {/* Video Device */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Camera</label>
+                  <select className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-gray-200 focus:outline-none focus:border-indigo-500/40">
+                    <option className="bg-[#0b0f19]">Integrated Webcam (1080p HD)</option>
+                    <option className="bg-[#0b0f19]">OBS Virtual Camera</option>
+                  </select>
+                </div>
+
+                {/* Speaker Output */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Speaker Output</label>
+                  <select className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-gray-200 focus:outline-none focus:border-indigo-500/40">
+                    <option className="bg-[#0b0f19]">System Speakers (Realtek Audio)</option>
+                    <option className="bg-[#0b0f19]">Wireless Headphones (Stereo)</option>
+                  </select>
+                </div>
+
+                {/* Noise suppression toggle */}
+                <div className="flex items-center justify-between p-3 rounded-xl bg-white/3 border border-white/5">
+                  <div>
+                    <h5 className="text-xs font-bold text-white">AI Noise Suppression</h5>
+                    <p className="text-[10px] text-gray-500">Filter out background clatter</p>
+                  </div>
+                  <button className="w-10 h-6 bg-indigo-600 rounded-full flex items-center justify-end px-1.5 transition-all cursor-pointer">
+                    <span className="w-4 h-4 bg-white rounded-full" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-8 flex justify-end gap-3 relative z-10">
+                <button
+                  onClick={() => setShowSettingsModal(false)}
+                  className="px-5 py-2 rounded-xl border border-white/10 text-xs font-bold text-white hover:bg-white/5 transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => setShowSettingsModal(false)}
+                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white transition-all cursor-pointer"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Floating Toast Notification */}
+      <AnimatePresence>
+        {notification && (
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            className="fixed top-6 left-1/2 -translate-x-1/2 px-4 py-2.5 rounded-xl bg-indigo-600/90 backdrop-blur-md text-white text-xs font-bold shadow-xl border border-indigo-500/30 z-50 flex items-center gap-2"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+            {notification}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
