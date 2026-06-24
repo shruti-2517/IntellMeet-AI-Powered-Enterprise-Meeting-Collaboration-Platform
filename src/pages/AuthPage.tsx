@@ -190,6 +190,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
                       value={form.email}
                       onChange={(e) => setForm({ ...form, email: e.target.value })}
                       required
+                      autoComplete="email"
                       className="w-full pl-10 pr-4 py-3 rounded-xl glass border border-white/10 focus:border-indigo-500/60 focus:outline-none focus:ring-1 focus:ring-indigo-500/30 text-white placeholder-gray-600 text-sm transition-all bg-transparent"
                     />
                   </div>
@@ -205,6 +206,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
                       value={form.password}
                       onChange={(e) => setForm({ ...form, password: e.target.value })}
                       required
+                      autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                       className="w-full pl-10 pr-10 py-3 rounded-xl glass border border-white/10 focus:border-indigo-500/60 focus:outline-none focus:ring-1 focus:ring-indigo-500/30 text-white placeholder-gray-600 text-sm transition-all bg-transparent"
                     />
                     <button
@@ -228,6 +230,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
                         value={form.confirmPassword}
                         onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
                         required
+                        autoComplete="new-password"
                         className="w-full pl-10 pr-4 py-3 rounded-xl glass border border-white/10 focus:border-indigo-500/60 focus:outline-none focus:ring-1 focus:ring-indigo-500/30 text-white placeholder-gray-600 text-sm transition-all bg-transparent"
                       />
                     </div>
