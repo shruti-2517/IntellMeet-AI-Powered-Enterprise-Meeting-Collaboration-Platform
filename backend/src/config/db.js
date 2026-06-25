@@ -6,8 +6,8 @@
 const mongoose = require('mongoose');
 const logger = require('../middleware/logger');
 
-const MAX_RETRIES = 3;
-const RETRY_DELAY_MS = 5000;
+const MAX_RETRIES = process.env.VERCEL ? 1 : 3;
+const RETRY_DELAY_MS = process.env.VERCEL ? 1000 : 5000;
 
 /**
  * Connect to MongoDB with exponential retry logic.
@@ -40,7 +40,7 @@ const connectDB = async (retryCount = 0) => {
   } catch (error) {
     logger.error(`MongoDB connection failed (attempt ${retryCount + 1}/${MAX_RETRIES}): ${error.message}`);
 
-    // Detect placeholder/unconfigured URI
+     // Detect placeholder/unconfigured URI
     const uri = process.env.MONGODB_URI || '';
     if (uri.includes('YOUR_USERNAME') || uri.includes('username:password') || uri.includes('xxxxx')) {
       logger.error('');
@@ -52,6 +52,9 @@ const connectDB = async (retryCount = 0) => {
       logger.error('   Option 2 (Local): Install MongoDB from https://www.mongodb.com/try/download/community');
       logger.error('━'.repeat(60));
       logger.error('');
+      if (process.env.VERCEL) {
+        throw new Error('MONGODB_URI is not configured.');
+      }
       process.exit(1);
     }
 
@@ -63,6 +66,9 @@ const connectDB = async (retryCount = 0) => {
 
     logger.error('❌ All MongoDB connection attempts failed.');
     logger.error('   Check your MONGODB_URI in the .env file and make sure MongoDB is accessible.');
+    if (process.env.VERCEL) {
+      throw error;
+    }
     process.exit(1);
   }
 };
