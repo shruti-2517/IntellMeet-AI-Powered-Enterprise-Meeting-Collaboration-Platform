@@ -143,12 +143,12 @@ export const useAppStore = create<AppState>((set) => ({
   toggleScreenShare: () => set((s) => ({ isScreenSharing: !s.isScreenSharing })),
   toggleRecording: () => set((s) => ({ isRecording: !s.isRecording })),
   startMeeting: (options) =>
-    set((s) => ({
+    set({
       isMeetingActive: true,
       currentPage: 'meeting-room',
       isMuted: options?.isMuted !== undefined ? options.isMuted : false,
       isCameraOff: options?.isCameraOff !== undefined ? options.isCameraOff : false,
-    })),
+    }),
   endMeeting: () => set({ isMeetingActive: false, currentPage: 'ai-summary' }),
 
   // ── Auth Actions ──────────────────────────────────────────────────────────
